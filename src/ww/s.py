@@ -15,26 +15,19 @@
 
 # t() or t >> for a jinja2 template (opeional dependancy ?)
 
-# TODO: join() autocast to str, with a callable you can customize
 
 # TODO: match.__repr__ should show match, groups, groupsdict in summary
-# TODO : if g() is called on a callable, iter() calls the callable everytime
 
 import re
+import inspect
 import operator
 
 from textwrap import dedent
 
+import chardet
+
 from .g import g
-
-
-def ensure_tuple(val):
-    if not isinstance(val, str):
-        try:
-            return tuple(val)
-        except TypeError:
-            return (val,)
-    return (val,)
+from .utils import ensure_tuple
 
 
 class MetaS(type):
@@ -56,6 +49,11 @@ REGEX_FLAGS = {
 }
 
 class s(str, metaclass=MetaS):
+
+    # TODO: check for bytes in __new__. Say we don't accept it and recommand
+    # to either use u'' in front of the string, from __future__ or
+    # s.from_bytes(bytes, encoding)
+
 
     def _parse_flags(self, flags):
         bflags = 0
@@ -99,3 +97,37 @@ class s(str, metaclass=MetaS):
             res = re.sub(pattern, sub, res, count=maxreplace, flags=flags)
 
         return s(res)
+
+    def dedent(self):
+        return s >> self
+
+    def join(self, iterable, formatter=lambda s, t: t.format(s), template="{}"):
+        return s(str.join(self, (formatter(st, template) for st in iterable)))
+
+    def decode(byte_string, encoding=None, errors='strict'):
+        if encoding is None:
+            encoding = chardet.detect(byte_string)['encoding']
+            raise ValueError(s >> f("""
+                             decode() expects a second argument:
+                             'encoding'. If you don't know which encoding,
+                             try '{encoding}' or 'utf8'. If it fails and you
+                             can't find out what has been used, you can get
+                             a partial decoding with encoding="ascii" and
+                             errors='replace' or 'ignore'.
+                             """))
+
+        return s(byte_string.decode(encoding, errors=errors))
+
+    def format(self, *args, **kwargs):
+        if not args and not kwargs:
+            pframe = inspect.currentframe().f_back
+            return s(str.format(self, **pframe.f_locals))
+        return s(str.format(self, *args, **kwargs))
+
+
+# TODO: make sure each class call self._class instead of s(), g(), etc
+class f:
+    def __new__(cls, string):
+        pframe = inspect.currentframe().f_back
+        return s(string.format(**pframe.f_locals))
+

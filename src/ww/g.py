@@ -35,6 +35,7 @@ from itertools import (chain, dropwhile, takewhile, tee, islice, cycle,
                        groupby)
 
 from .iterable import starts_when, stops_when
+from .utils import ensure_tuple
 
 # todo : merge https://toolz.readthedocs.org/en/latest/api.html
 # toto : merge https://github.com/kachayev/fn.py
@@ -146,7 +147,7 @@ class g:
             >>> list(g(range(6)) - [1, 2, 3])
             [0, 4, 5]
         """
-        filter_from = set(other)
+        filter_from = set(ensure_tuple(other))
         return g(x for x in self if x not in filter_from)
 
     def __rsub__(self, other: Iterable):

@@ -70,9 +70,12 @@ def test_add():
 
 def test_sub():
 
-    gen = g('abcdef') - 'ac'
+    gen = g('abcdef') - list('ac')
     assert isinstance(gen, g)
     assert list(gen) == list('bdef')
+
+    gen = g(['aa', 'ab', 'ac']) - 'ac'
+    assert list(gen) == ['aa', 'ab']
 
     gen = 'abcdef' - g('ac')
     assert isinstance(gen, g)

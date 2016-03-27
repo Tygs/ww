@@ -3,7 +3,7 @@ import re
 
 import pytest
 
-from ww import s, g
+from ww import s, g, f
 
 def test_lshift():
 
@@ -39,7 +39,6 @@ def test_split():
     assert s(r'cAt').split('a', flags=re.I).list() == ['c', 't']
 
 
-
 def test_replace():
 
     st = s('test').replace(',', '')
@@ -63,3 +62,39 @@ def test_replace():
     assert s(r'cAt').replace('a', 'b', flags='i') == 'cbt'
 
     assert s(r'cAt').replace('a', 'b', flags=re.I) == 'cbt'
+
+
+def test_join():
+
+    assert s(';').join('abc') == "a;b;c"
+    assert s(';').join(range(3)) == "0;1;2"
+    assert s(';').join(range(3), template="{:.1f}") == "0.0;1.0;2.0"
+    assert s(';').join(range(3), formatter=lambda s, t: "a") == "a;a;a"
+
+
+def test_from_bytes():
+
+    assert isinstance(s.decode(b'abc', 'ascii'), s)
+    assert s.decode(b'abc', 'ascii') == 'abc'
+
+    assert s.decode('é'.encode('utf8'), 'utf8') == 'é'
+
+    with pytest.raises(UnicodeDecodeError):
+        s.decode('é'.encode('cp850'), 'ascii')
+
+    with pytest.raises(ValueError):
+        s.decode('é'.encode('cp850'))
+
+
+def test_format():
+
+    foo = 1
+    bar = [1]
+    string = s('{foo} {bar[0]:.1f}')
+    assert isinstance(string.format(foo=foo, bar=bar), s)
+    assert string.format(foo=foo, bar=bar) == "1 1.0"
+
+    assert f(string) == "1 1.0"
+    assert isinstance(f(string), s)
+    assert f('{foo} {bar[0]:.1f}') == "1 1.0"
+
