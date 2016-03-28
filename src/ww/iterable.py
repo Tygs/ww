@@ -1,8 +1,10 @@
+
+
 from typing import Union, Callable, Iterable, Any
 from itertools import takewhile, dropwhile, chain, islice
 
 
-def starts_when(self, condition: Union[Callable, Any]):
+def starts_when(iterable, condition: Union[Callable, Any]):
     """Start yielding items when a condition arise.
 
     Args:
@@ -18,11 +20,11 @@ def starts_when(self, condition: Union[Callable, Any]):
         [7, 8, 9]
     """
     if not callable(condition):
-        value = condition
-        condition = lambda x: value == x
-    return g(dropwhile(lambda x: not condition(x), self.iterable))
+        raise ValueError("Expecting a callable, not '{}'".format(condition))
+    return dropwhile(lambda x: not condition(x), iterable)
 
-def stops_when(self, condition: Union[Callable, Any]):
+
+def stops_when(iterable, condition: Union[Callable, Any]):
     """Stop yielding items when a condition arise.
 
     Args:
@@ -38,9 +40,8 @@ def stops_when(self, condition: Union[Callable, Any]):
         [0, 1, 2, 3, 4, 5, 6]
     """
     if not callable(condition):
-        value = condition
-        condition = lambda x: value == x
-    return g(takewhile(lambda x: not condition(x), self.iterable))
+        raise ValueError("Expecting a callable, not '{}'".format(condition))
+    return takewhile(lambda x: not condition(x), iterable)
 
 
 def skip_duplicates(iterable: Iterable, key: Callable=lambda x: x):

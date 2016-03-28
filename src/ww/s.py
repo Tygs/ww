@@ -14,6 +14,7 @@
 # f() for format, if no args are passed, it uses local. Also allow f >> ""
 
 # t() or t >> for a jinja2 template (opeional dependancy ?)
+# something for translation ?
 
 
 # TODO: match.__repr__ should show match, groups, groupsdict in summary
@@ -28,6 +29,8 @@ import chardet
 
 from .g import g
 from .utils import ensure_tuple
+
+# TODO: make sure we copy all methods from str but return s()
 
 
 class MetaS(type):

@@ -113,3 +113,34 @@ def test_tee():
 
     with pytest.raises(RuntimeError):
         list(gen)
+
+
+def test_getitem():
+
+    gen = g(x * x for x in range(10))
+    assert isinstance(gen[3:5], g)
+
+    assert list(gen[3:8]) == [9, 16, 25, 36, 49]
+
+    assert g(x * x for x in range(10))[3] == 9
+
+    def ends_with_5(x):
+        return str(x).endswith('5')
+    gen = g(x * x for x in range(10))
+    assert gen[ends_with_5:].list() == [25, 36, 49, 64, 81]
+
+    assert g(x * x for x in range(10))[ends_with_5] == 25
+
+    gen = g(x * x for x in range(10))
+    assert gen[:ends_with_5].list() == [0, 1, 4, 9, 16]
+
+    gen = g(x * x for x in range(10))
+    assert gen[2:ends_with_5].list() == [4, 9, 16]
+
+    gen = g(x * x for x in range(10))
+    assert gen[ends_with_5:8].list() == [25, 36, 49]
+
+    assert g(x * x for x in range(10))[-1] == 81
+
+    with pytest.raises(ValueError):
+        assert gen["not a callable"]
