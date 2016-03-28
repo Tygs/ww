@@ -34,7 +34,7 @@ except ImportError:
 from itertools import (chain, dropwhile, takewhile, tee, islice, cycle,
                        groupby)
 
-from .iterable import starts_when, stops_when
+from .iterable import starts_when, stops_when, at_index, iterslice, first_true
 from .utils import ensure_tuple
 
 # todo : merge https://toolz.readthedocs.org/en/latest/api.html
@@ -244,43 +244,19 @@ class g:
 
         # TODO: make 3 functions out of this
         if isinstance(index, int):
-            try:
-                if index < 0:
-                    return deque(self.iterable, maxlen=abs(index)).popleft()
-
-                return next(islice(self.iterable, index, index + 1))
-            except (StopIteration, IndexError) as e:
-                raise IndexError('Index "%d" out of range' % index) from e
+            return at_index(self.iterable, index)
 
         if callable(index):
-            try:
-                return next((x for x in self.iterable if index(x)))
-            except StopIteration as e:
-                raise IndexError('No match for %s' % index) from e
+            return first_true(self.iterable, index)
 
         try:
             start = index.start or 0
             step = index.step or 1
             stop = index.stop
         except AttributeError:
-            raise ValueError('g[] works only with integers of callables')
+            raise ValueError('Indexing works only with integers or callables')
 
-        if step < 0:
-            raise ValueError('The step can not be negative: %s given' % step)
-
-        if not isinstance(start, int):
-
-            if not isinstance(stop, int) and stop:
-                return g(stops_when(starts_when(self.iterable, start), stop))
-
-            sliced = islice(self.iterable, None, stop, step)
-            return g(starts_when(sliced, start))
-
-        if not isinstance(stop, int) and stop:
-            sliced = islice(self.iterable, start, None, step)
-            return g(stops_when(sliced, stop))
-
-        return g(islice(self.iterable, start, stop, step))
+        return g(iterslice(self.iterable, start, stop, step))
 
     def map(self, call: Callable):
         """Apply map() then wrap in g()

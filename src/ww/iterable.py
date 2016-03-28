@@ -1,7 +1,10 @@
 
 
 from typing import Union, Callable, Iterable, Any
+
 from itertools import takewhile, dropwhile, chain, islice
+
+from collections import deque
 
 
 def starts_when(iterable, condition: Union[Callable, Any]):
@@ -164,3 +167,60 @@ def window(iterable, size=2, cast=tuple):
         for x in iterable:
             d.append(x)
             yield d
+
+
+def at_index(iterable: Iterable, index: int):
+    """" Return the item at the index of this iterable or raises IndexError.
+
+        WARNING: this will consume generators.
+
+        Negative indices are allowed but be aware they will cause n items to
+        be held in memory, where n = abs(index)
+    """
+    try:
+        if index < 0:
+            return deque(iterable, maxlen=abs(index)).popleft()
+
+        return next(islice(iterable, index, index + 1))
+    except (StopIteration, IndexError) as e:
+        raise IndexError('Index "%d" out of range' % index) from e
+
+
+def first_true(iterable, func):
+    """" Return the first item of the iterable for which func(item) == True.
+
+        Or raises IndexError.
+
+        WARNING: this will consume generators.
+    """
+    try:
+        return next((x for x in iterable if func(x)))
+    except StopIteration as e:
+        raise IndexError('No match for %s' % func) from e
+
+
+def iterslice(iterable, start=0, stop=None, step=1):
+    """ Like itertools.islice, but accept int and callables.
+
+        If `start` is a callable, start the slice after the first time
+        start(item) == True.
+
+        If `stop` is a callable, stop the slice after the first time
+        stop(item) == True.
+
+    """
+
+    if step < 0:
+        raise ValueError("The step can not be negative: '%s' given" % step)
+
+    if not isinstance(start, int):
+
+        if not isinstance(stop, int) and stop:
+            return stops_when(starts_when(iterable, start), stop)
+
+        return starts_when(islice(iterable, None, stop, step), start)
+
+    if not isinstance(stop, int) and stop:
+        return stops_when(islice(iterable, start, None, step), stop)
+
+    return islice(iterable, start, stop, step)
