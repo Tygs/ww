@@ -228,4 +228,3 @@ def iterslice(iterable, start=0, stop=None, step=1):
     # [int:int]
     return islice(iterable, start, stop, step)
 
-

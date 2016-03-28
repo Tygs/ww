@@ -175,6 +175,7 @@ def test_cycle():
     assert next(gen) == "1"
     assert next(gen) == "2"
 
+
 def test_chunks():
 
     gen = g('123456789').chunks(3)
@@ -184,6 +185,18 @@ def test_chunks():
     gen = g('123456789').chunks(2, list)
     assert isinstance(gen, g)
     assert list(gen) == [['1', '2'], ['3', '4'], ['5', '6'], ['7', '8'], ['9']]
+
+
+def test_window():
+
+    gen = g('12345').window(3)
+    assert isinstance(gen, g)
+    assert list(gen) == [('1', '2', '3'), ('2', '3', '4'), ('3', '4', '5')]
+
+    gen = g('12345').window(2, list)
+    assert isinstance(gen, g)
+    assert list(gen) == [['1', '2'], ['2', '3'], ['3', '4'], ['4', '5']]
+
 
 def test_chaining_calls():
 

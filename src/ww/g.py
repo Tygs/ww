@@ -35,7 +35,7 @@ from itertools import (chain, dropwhile, takewhile, tee, islice, cycle,
                        groupby)
 
 from .iterable import (starts_when, stops_when, at_index, iterslice, first_true,
-                       chunks)
+                       chunks, window)
 from .utils import ensure_tuple
 
 # todo : merge https://toolz.readthedocs.org/en/latest/api.html
