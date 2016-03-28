@@ -207,7 +207,6 @@ def iterslice(iterable, start=0, stop=None, step=1):
 
         If `stop` is a callable, stop the slice after the first time
         stop(item) == True.
-
     """
 
     if step < 0:
@@ -215,12 +214,16 @@ def iterslice(iterable, start=0, stop=None, step=1):
 
     if not isinstance(start, int):
 
+        # [callable:callable]
         if not isinstance(stop, int) and stop:
             return stops_when(starts_when(iterable, start), stop)
 
+        # [callable:int]
         return starts_when(islice(iterable, None, stop, step), start)
 
+    # [int:callable]
     if not isinstance(stop, int) and stop:
         return stops_when(islice(iterable, start, None, step), stop)
 
+    # [int:int]
     return islice(iterable, start, stop, step)

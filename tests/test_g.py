@@ -144,3 +144,22 @@ def test_getitem():
 
     with pytest.raises(ValueError):
         assert gen["not a callable"]
+
+
+def test_map():
+
+    gen = g("123").map(int)
+    assert isinstance(gen, g)
+    assert list(gen) == [1, 2, 3]
+
+
+def test_zip():
+
+    gen = g("123").zip("abc")
+    assert isinstance(gen, g)
+    assert list(gen) == list(zip("123", "abc"))
+
+    gen = g("123").zip("abc", (True, False, None))
+    assert isinstance(gen, g)
+    assert list(gen) == list(zip("123", "abc", (True, False, None)))
+

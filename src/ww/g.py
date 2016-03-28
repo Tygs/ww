@@ -242,7 +242,6 @@ class g:
             ValueError: The step can not be negative: -1 given
         """
 
-        # TODO: make 3 functions out of this
         if isinstance(index, int):
             return at_index(self.iterable, index)
 
@@ -258,7 +257,7 @@ class g:
 
         return g(iterslice(self.iterable, start, stop, step))
 
-    def map(self, call: Callable):
+    def map(self, func: Callable):
         """Apply map() then wrap in g()
 
         Args:
@@ -270,7 +269,7 @@ class g:
             ['0', '1', '2']
 
         """
-        return g(imap(call, self))
+        return g(imap(func, self.iterable))
 
     def zip(self, *others: Iterable):
         """Apply zip() then wrap in g()
