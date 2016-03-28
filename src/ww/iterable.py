@@ -123,14 +123,14 @@ def skip_duplicates(iterable: Iterable, key: Callable=lambda x: x):
         else:
             raise
 
-
-def chunks(self, chunksize, process=tuple):
+# TODO: test that on big iterators to check for recursion limit
+def chunks(iterable, chunksize, cast=tuple):
     """
         Yields items from an iterator in iterable chunks.
     """
-    it = iter(self)
+    it = iter(iterable)
     while True:
-        yield process(chain([next(it)], islice(it, chunksize - 1)))
+        yield cast(chain([next(it)], islice(it, chunksize - 1)))
 
 
 def window(iterable, size=2, cast=tuple):
@@ -227,3 +227,5 @@ def iterslice(iterable, start=0, stop=None, step=1):
 
     # [int:int]
     return islice(iterable, start, stop, step)
+
+

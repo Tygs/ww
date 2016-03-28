@@ -34,7 +34,8 @@ except ImportError:
 from itertools import (chain, dropwhile, takewhile, tee, islice, cycle,
                        groupby)
 
-from .iterable import starts_when, stops_when, at_index, iterslice, first_true
+from .iterable import (starts_when, stops_when, at_index, iterslice, first_true,
+                       chunks)
 from .utils import ensure_tuple
 
 # todo : merge https://toolz.readthedocs.org/en/latest/api.html
@@ -44,7 +45,7 @@ from .utils import ensure_tuple
 class g:
 
     def __init__(self, iterable: Iterable, *args: Iterable):
-        """Initialize self.iterable to iter(iterable)
+        """Initialize self.iterator to iter(iterable)
 
         If several iterables are passed, they are concatenated.
 
@@ -63,7 +64,7 @@ class g:
 
         if args:
             iterable = chain(iterable, *args)
-        self.iterable = iter(iterable)
+        self.iterator = iter(iterable)
         self._tee_called = False
 
 
@@ -79,7 +80,7 @@ class g:
         if self._tee_called:
             raise RuntimeError("You can't iterate on a g object after g.tee "
                                "has been called on it.")
-        return self.iterable
+        return self.iterator
 
     def next(self, default: Any=None):
         """Call next() on inner iterable.
@@ -95,7 +96,7 @@ class g:
             >>> g(range(0)).next("foo")
             'foo'
         """
-        return next(self.iterable, default)
+        return next(self.iterator, default)
 
     __next__ = next
 
@@ -112,7 +113,7 @@ class g:
             >>> list(g(range(3)) + "abc")
             [0, 1, 2, 'a', 'b', 'c']
         """
-        return g(chain(self.iterable, other))
+        return g(chain(self.iterator, other))
 
     def __radd__(self, other: Iterable):
         """Return a generator that concatenates both generators.
@@ -127,7 +128,7 @@ class g:
             >>> list("abc" + g(range(3)))
             ['a', 'b', 'c', 0, 1, 2]
         """
-        return g(chain(other, self.iterable))
+        return g(chain(other, self.iterator))
 
     # TODO: allow non iterable
     def __sub__(self, other: Iterable):
@@ -163,7 +164,7 @@ class g:
             >>> list("abc" + g(range(3)))
             ['a', 'b', 'c', 0, 1, 2]
         """
-        filter_from = set(self.iterable)
+        filter_from = set(self.iterator)
         return g(x for x in other if x not in filter_from)
 
     def __mul__(self, num: int):
@@ -179,7 +180,7 @@ class g:
             >>> list(2 * g(range(3)))
             [0, 1, 2, 0, 1, 2]
         """
-        return g(chain(*tee(self.iterable, num)))
+        return g(chain(*tee(self.iterator, num)))
 
     __rmul__ = __mul__
 
@@ -243,10 +244,10 @@ class g:
         """
 
         if isinstance(index, int):
-            return at_index(self.iterable, index)
+            return at_index(self.iterator, index)
 
         if callable(index):
-            return first_true(self.iterable, index)
+            return first_true(self.iterator, index)
 
         try:
             start = index.start or 0
@@ -255,7 +256,7 @@ class g:
         except AttributeError:
             raise ValueError('Indexing works only with integers or callables')
 
-        return g(iterslice(self.iterable, start, stop, step))
+        return g(iterslice(self.iterator, start, stop, step))
 
     def map(self, func: Callable):
         """Apply map() then wrap in g()
@@ -269,7 +270,7 @@ class g:
             ['0', '1', '2']
 
         """
-        return g(imap(func, self.iterable))
+        return g(imap(func, self.iterator))
 
     def zip(self, *others: Iterable):
         """Apply zip() then wrap in g()
@@ -277,73 +278,63 @@ class g:
         Args:
             others: the iterables to pass to zip()
 
-
         """
-        return g(izip(self.iterable, *others))
-
-    def filter(self, predicate):
-        return g(ifilter(predicate, self.iterable))
+        return g(izip(self.iterator, *others))
 
     def cycle(self):
-        return g(cycle(self.iterable))
-
-    def takewhile(self, predicate):
-        return g(takewhile(predicate, self.iterable))
-
-    def dropwhile(self, predicate):
-        return g(dropwhile(predicate, self.iterable))
+        return g(cycle(self.iterator))
 
     def groupby(self, keyfunc=None):
-        return g(groupby(self.iterable, keyfunc))
+        return g(groupby(self.iterator, keyfunc))
 
     def enumerate(self, start):
-        return g(enumerate(self.iterable, start))
+        return g(enumerate(self.iterator, start))
 
     def count(self):
         try:
-            return len(self.iterable)
+            return len(self.iterator)
         except TypeError:
-            for i, _ in enumerate(self.iterable):
+            for i, _ in enumerate(self.iterator):
                 pass
             return i
 
     def copy(self):
-        self.iterable, new = tee(self.iterable)
+        self.iterator, new = tee(self.iterator)
         return g(new)
 
     def list(self):
-        return list(self)
+        return list(self.iterator)
 
     def tuple(self):
-        return tuple(self)
+        return tuple(self.iterator)
 
     def set(self):
-        return set(self)
+        return set(self.iterator)
 
     def join(self, separator="", cast=str):
-        return separator.join(cast(x) for x in self)
+        return separator.join(cast(x) for x in self.iterator)
 
     def __repr__(self):
         return "<g generator>"
 
-    def chunks(self, chunksize, process=tuple):
+    def chunks(self, chunksize, cast=__builtins__['tuple']):
         """
             Yields items from an iterator in iterable chunks.
         """
-        return q(chunks(self, chunksize, process))
+        return g(chunks(self.iterator, chunksize, cast))
 
-    def window(self, size=2, cast=tuple):
+    def window(self, size=2, cast=__builtins__['tuple']):
         """
         Yields iterms by bunch of a given size, but rolling only one item
         in and out at a time when iterating.
         """
-        return q(window(self, size, cast))
+        return g(window(self.iterator, size, cast))
 
     def unpack(self, items=2, default=None):
-        return g(unpack(self.iterable, items, default))
+        return g(unpack(self.iterator, items, default))
 
     def skip_duplicates(self, key=lambda x: x):
-        return q(skip_duplicates(self, key))
+        return g(skip_duplicates(self.iterator, key))
 
     def join(sep="", cast=str):
-        return sep.join(cast(x) for x in self)
+        return sep.join(cast(x) for x in self.iterator)

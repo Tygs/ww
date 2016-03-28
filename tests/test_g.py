@@ -163,3 +163,30 @@ def test_zip():
     assert isinstance(gen, g)
     assert list(gen) == list(zip("123", "abc", (True, False, None)))
 
+def test_cycle():
+
+    gen = g("12").cycle()
+    assert isinstance(gen, g)
+
+    assert next(gen) == "1"
+    assert next(gen) == "2"
+    assert next(gen) == "1"
+    assert next(gen) == "2"
+    assert next(gen) == "1"
+    assert next(gen) == "2"
+
+def test_chunks():
+
+    gen = g('123456789').chunks(3)
+    assert isinstance(gen, g)
+    assert list(gen) == [('1', '2', '3'), ('4', '5', '6'), ('7', '8', '9')]
+
+    gen = g('123456789').chunks(2, list)
+    assert isinstance(gen, g)
+    assert list(gen) == [['1', '2'], ['3', '4'], ['5', '6'], ['7', '8'], ['9']]
+
+def test_chaining_calls():
+
+    gen = (g("0123456") + g("789") - "2")[:5].map(int).chunks(3)
+    assert isinstance(gen, g)
+    assert list(gen) == [(0, 1, 3), (4, 5)]
