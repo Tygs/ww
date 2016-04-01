@@ -1,8 +1,7 @@
 
+import itertools
 
 from typing import Union, Callable, Iterable, Any
-
-from itertools import takewhile, dropwhile, chain, islice
 
 from collections import deque
 
@@ -24,7 +23,7 @@ def starts_when(iterable, condition: Union[Callable, Any]):
     """
     if not callable(condition):
         raise ValueError("Expecting a callable, not '{}'".format(condition))
-    return dropwhile(lambda x: not condition(x), iterable)
+    return itertools.dropwhile(lambda x: not condition(x), iterable)
 
 
 def stops_when(iterable, condition: Union[Callable, Any]):
@@ -44,7 +43,7 @@ def stops_when(iterable, condition: Union[Callable, Any]):
     """
     if not callable(condition):
         raise ValueError("Expecting a callable, not '{}'".format(condition))
-    return takewhile(lambda x: not condition(x), iterable)
+    return itertools.takewhile(lambda x: not condition(x), iterable)
 
 
 def skip_duplicates(iterable: Iterable, key: Callable=lambda x: x):
@@ -130,7 +129,7 @@ def chunks(iterable, chunksize, cast=tuple):
     """
     it = iter(iterable)
     while True:
-        yield cast(chain([next(it)], islice(it, chunksize - 1)))
+        yield cast(itertools.chain([next(it)], itertools.islice(it, chunksize - 1)))
 
 
 def window(iterable, size=2, cast=tuple):
@@ -156,7 +155,7 @@ def window(iterable, size=2, cast=tuple):
 
     """
     iterable = iter(iterable)
-    d = deque(islice(iterable, size), size)
+    d = deque(itertools.islice(iterable, size), size)
     if cast:
         yield cast(d)
         for x in iterable:
@@ -181,7 +180,7 @@ def at_index(iterable: Iterable, index: int):
         if index < 0:
             return deque(iterable, maxlen=abs(index)).popleft()
 
-        return next(islice(iterable, index, index + 1))
+        return next(itertools.islice(iterable, index, index + 1))
     except (StopIteration, IndexError) as e:
         raise IndexError('Index "%d" out of range' % index) from e
 
@@ -219,12 +218,19 @@ def iterslice(iterable, start=0, stop=None, step=1):
             return stops_when(starts_when(iterable, start), stop)
 
         # [callable:int]
-        return starts_when(islice(iterable, None, stop, step), start)
+        return starts_when(itertools.islice(iterable, None, stop, step), start)
 
     # [int:callable]
     if not isinstance(stop, int) and stop:
-        return stops_when(islice(iterable, start, None, step), stop)
+        return stops_when(itertools.islice(iterable, start, None, step), stop)
 
     # [int:int]
-    return islice(iterable, start, stop, step)
+    return itertools.islice(iterable, start, stop, step)
+
+
+def groupby(iterable, keyfunc=None, reverse=False, cast=tuple):
+    sorted_iterable = sorted(iterable, key=keyfunc, reverse=reverse)
+    for key, group in itertools.groupby(sorted_iterable, keyfunc):
+        yield key, cast(group)
+
 

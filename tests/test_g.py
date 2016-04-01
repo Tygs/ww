@@ -203,3 +203,19 @@ def test_chaining_calls():
     gen = (g("0123456") + g("789") - "2")[:5].map(int).chunks(3)
     assert isinstance(gen, g)
     assert list(gen) == [(0, 1, 3), (4, 5)]
+
+
+def test_groupby():
+
+    data = [(1, True), (2, True), (3, True), (4, False), (5, False), (6, True)]
+    gen = g(data).groupby(lambda x: x[1])
+    assert isinstance(gen, g)
+    assert list(gen) == [(False, ((4, False), (5, False))),
+                        (True, ((1, True), (2, True), (3, True), (6, True)))]
+
+    gen = g(data).groupby(lambda x: x[1], reverse=True)
+    assert list(gen) == [(True, ((1, True), (2, True), (3, True), (6, True))),
+                         (False, ((4, False), (5, False)))]
+
+    gen = g('yyuiyuiyiyuyi').groupby(cast=lambda x: len(tuple(x)))
+    assert list(gen) == [('i', 4), ('u', 3), ('y', 6)]

@@ -31,11 +31,10 @@ except ImportError:
     izip = zip
     ifilter = filter
 
-from itertools import (chain, dropwhile, takewhile, tee, islice, cycle,
-                       groupby)
+from itertools import (chain, dropwhile, takewhile, tee, islice, cycle)
 
 from .iterable import (starts_when, stops_when, at_index, iterslice, first_true,
-                       chunks, window)
+                       chunks, window, groupby)
 from .utils import ensure_tuple
 
 # todo : merge https://toolz.readthedocs.org/en/latest/api.html
@@ -284,8 +283,11 @@ class g:
     def cycle(self):
         return g(cycle(self.iterator))
 
-    def groupby(self, keyfunc=None):
-        return g(groupby(self.iterator, keyfunc))
+    def sorted(self, keyfunc=None, reverse=False):
+        return g(sorted(self.iterator, key=reverse))
+
+    def groupby(self, keyfunc=None, reverse=False, cast=tuple):
+        return g(groupby(self, keyfunc, reverse, cast))
 
     def enumerate(self, start):
         return g(enumerate(self.iterator, start))
