@@ -21,7 +21,6 @@
 
 import re
 import inspect
-import operator
 
 from textwrap import dedent
 
@@ -35,6 +34,7 @@ from .utils import ensure_tuple
 
 class MetaS(type):
     """ Allow s >> 'text' as a shortcut to dedent strings """
+
     def __rshift__(self, other):
         return s(dedent(other))
 
@@ -51,12 +51,12 @@ REGEX_FLAGS = {
     'l': re.LOCALE,
 }
 
+
 class s(str, metaclass=MetaS):
 
     # TODO: check for bytes in __new__. Say we don't accept it and recommand
     # to either use u'' in front of the string, from __future__ or
     # s.from_bytes(bytes, encoding)
-
 
     def _parse_flags(self, flags):
         bflags = 0
@@ -69,11 +69,23 @@ class s(str, metaclass=MetaS):
         return flags
 
     def split(self, *separators, maxsplit=0, flags=0):
+
+        for sep in separators:
+            if not isinstance(sep, str):  # TODO: allow python 2.7
+                msg = s >> """
+                    Separators must be string, not "{sep}" ({sep_type}).
+                    A common cause of this error is to call split([a, b, c])
+                    instead of split(a, b, c).
+                """.format(sep=sep, sep_type=type(sep))
+                raise TypeError(msg)
+
         return g(self._split(separators, maxsplit, self._parse_flags(flags)))
 
     def _split(self, separators, maxsplit=0, flags=0):
         try:
             sep = separators[0]
+            # TODO: find a better error message
+
             for chunk in re.split(sep, self, maxsplit, flags):
                 yield from s(chunk)._split(separators[1:], maxsplit=0, flags=0)
         except IndexError:
@@ -130,6 +142,7 @@ class s(str, metaclass=MetaS):
 
 # TODO: make sure each class call self._class instead of s(), g(), etc
 class f:
+
     def __new__(cls, string):
         pframe = inspect.currentframe().f_back
         return s(string.format(**pframe.f_locals))

@@ -219,3 +219,31 @@ def test_groupby():
 
     gen = g('yyuiyuiyiyuyi').groupby(cast=lambda x: len(tuple(x)))
     assert list(gen) == [('i', 4), ('u', 3), ('y', 6)]
+
+
+def test_first():
+
+    gen = g("12345").first()
+    assert isinstance(gen, g)
+
+    a, = gen
+    assert a == "1"
+
+    a, b = g("12345").first(2)
+    assert a == "1"
+    assert b == "2"
+
+    a, b, c = g("12").first(3)
+    assert a == "1"
+    assert b == "2"
+    assert c is None
+
+    a, b, c, d = g("12").first(4, default="other")
+    assert a == "1"
+    assert b == "2"
+    assert c == d == "other"
+
+    gen = g(range(5))
+    a, b = gen.first(2)
+    assert list(gen) == [2, 3, 4]
+

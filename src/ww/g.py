@@ -21,7 +21,6 @@
 # TODO: add features from https://docs.python.org/3/library/itertools.html#itertools-recipes
 # TODO: allow s >> allow you to wrap a string AND dedent it automatically
 
-from collections import deque
 from typing import Any, Union, Callable, Iterable
 
 try:
@@ -31,10 +30,10 @@ except ImportError:
     izip = zip
     ifilter = filter
 
-from itertools import (chain, dropwhile, takewhile, tee, islice, cycle)
+from itertools import chain, tee, cycle
 
-from .iterable import (starts_when, stops_when, at_index, iterslice, first_true,
-                       chunks, window, groupby)
+from .iterable import (at_index, iterslice, first_true,
+                       chunks, window, groupby, first)
 from .utils import ensure_tuple
 
 # todo : merge https://toolz.readthedocs.org/en/latest/api.html
@@ -65,7 +64,6 @@ class g:
             iterable = chain(iterable, *args)
         self.iterator = iter(iterable)
         self._tee_called = False
-
 
     def __iter__(self):
         """Return the inner iterable.
@@ -332,11 +330,9 @@ class g:
         """
         return g(window(self.iterator, size, cast))
 
-    def unpack(self, items=2, default=None):
-        return g(unpack(self.iterator, items, default))
+    def first(self, items=1, default=None):
+        return g(first(self.iterator, items, default))
 
     def skip_duplicates(self, key=lambda x: x):
         return g(skip_duplicates(self.iterator, key))
 
-    def join(sep="", cast=str):
-        return sep.join(cast(x) for x in self.iterator)

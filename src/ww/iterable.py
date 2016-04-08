@@ -234,3 +234,17 @@ def groupby(iterable, keyfunc=None, reverse=False, cast=tuple):
         yield key, cast(group)
 
 
+def first(iterable, items=1, default=None):
+    """ Lazily return the first x items from this iterable or default. """
+
+    try:
+        items = int(items)
+        assert items >= 0
+    except (TypeError, AssertionError):
+        raise ValueError("items should be set so that int(items) >= 0")
+
+    for i, item in zip(range(items), iterable):
+        yield item
+
+    for x in range(items - (i + 1)):
+        yield default
