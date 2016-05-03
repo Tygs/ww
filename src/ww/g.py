@@ -32,7 +32,7 @@ except ImportError:
 
 from itertools import chain, tee, cycle
 
-from .iterable import (at_index, iterslice, first_true,
+from .iterable import (at_index, iterslice, first_true, skip_duplicates,
                        chunks, window, groupby, first, last)
 from .utils import ensure_tuple
 
@@ -339,4 +339,3 @@ class g:
 
     def skip_duplicates(self, key=lambda x: x):
         return g(skip_duplicates(self.iterator, key))
-

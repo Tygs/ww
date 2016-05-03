@@ -46,7 +46,7 @@ def stops_when(iterable, condition: Union[Callable, Any]):
     return itertools.takewhile(lambda x: not condition(x), iterable)
 
 
-def skip_duplicates(iterable: Iterable, key: Callable=lambda x: x):
+def skip_duplicates(iterable: Iterable, key: Callable=None):
     """
         Returns a generator that will yield all objects from iterable, skipping
         duplicates.
@@ -116,7 +116,7 @@ def skip_duplicates(iterable: Iterable, key: Callable=lambda x: x):
             raise TypeError(
                 "The 'key' function returned a non hashable object of type "
                 "'%s' when receiving '%s'. Make sure this function always "
-                "returns a hashable object. Hint : immutable primitives like"
+                "returns a hashable object. Hint: immutable primitives like"
                 "int, str or tuple, are hashable while dict, set and list are "
                 "not." % (type(fingerprint), x))
         else:

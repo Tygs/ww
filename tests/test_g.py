@@ -273,3 +273,21 @@ def test_last():
     gen = g(range(5))
     a, b = gen.last(2)
     assert list(gen) == []
+
+
+def test_skip_duplicates():
+
+    gen = g("12345").skip_duplicates()
+    assert isinstance(gen, g)
+
+    gen = g("12345").skip_duplicates()
+    assert list(gen) == ["1", "2", "3", "4", "5"]
+
+    gen = g("123333333322234").skip_duplicates()
+    assert list(gen) == ["1", "2", "3", '4']
+
+    gen = g([-1, 1, 2, 3]).skip_duplicates(key=abs)
+    assert list(gen) == [-1, 2, 3]
+
+    with pytest.raises(TypeError):
+            list(g([{}, {}]).skip_duplicates())
