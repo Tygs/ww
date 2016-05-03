@@ -33,11 +33,12 @@ except ImportError:
 from itertools import chain, tee, cycle
 
 from .iterable import (at_index, iterslice, first_true,
-                       chunks, window, groupby, first)
+                       chunks, window, groupby, first, last)
 from .utils import ensure_tuple
 
 # todo : merge https://toolz.readthedocs.org/en/latest/api.html
 # toto : merge https://github.com/kachayev/fn.py
+# TODO: merge https://pythonhosted.org/natsort/natsort_keygen.html#natsort.natsort_keygen
 
 
 class g:
@@ -332,6 +333,9 @@ class g:
 
     def first(self, items=1, default=None):
         return g(first(self.iterator, items, default))
+
+    def last(self, items=1, default=None):
+        return g(last(self.iterator, items, default))
 
     def skip_duplicates(self, key=lambda x: x):
         return g(skip_duplicates(self.iterator, key))

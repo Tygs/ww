@@ -247,3 +247,29 @@ def test_first():
     a, b = gen.first(2)
     assert list(gen) == [2, 3, 4]
 
+
+def test_last():
+
+    gen = g("12345").last()
+    assert isinstance(gen, g)
+
+    a, = gen
+    assert a == "5"
+
+    a, b = g("12345").last(2)
+    assert a == "4"
+    assert b == "5"
+
+    a, b, c = g("12").last(3)
+    assert a == None
+    assert b == "1"
+    assert c is "2"
+
+    a, b, c, d = g("12").last(4, default="other")
+    assert a == b == "other"
+    assert c == "1"
+    assert d == "2"
+
+    gen = g(range(5))
+    a, b = gen.last(2)
+    assert list(gen) == []

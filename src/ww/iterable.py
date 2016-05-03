@@ -248,3 +248,16 @@ def first(iterable, items=1, default=None):
 
     for x in range(items - (i + 1)):
         yield default
+
+
+def last(iterable, items=1, default=None):
+    """ Lazily return the last x items from this iterable or default. """
+
+
+    last_items = deque(iterable, maxlen=items)
+
+    for x in range(items - len(last_items)):
+        yield default
+
+    for x in last_items:
+        yield x
