@@ -337,5 +337,7 @@ class g:
     def last(self, items=1, default=None):
         return g(last(self.iterator, items, default))
 
-    def skip_duplicates(self, key=lambda x: x):
-        return g(skip_duplicates(self.iterator, key))
+    # allow using a bloom filter as an alternative to set
+    # https://github.com/jaybaird/python-bloomfilter
+    def skip_duplicates(self, key=lambda x: x,  fingerprints=None):
+        return g(skip_duplicates(self.iterator, key, fingerprints))

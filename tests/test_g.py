@@ -290,4 +290,7 @@ def test_skip_duplicates():
     assert list(gen) == [-1, 2, 3]
 
     with pytest.raises(TypeError):
-            list(g([{}, {}]).skip_duplicates())
+        list(g([{}, {}]).skip_duplicates())
+
+    gen = g([1]).skip_duplicates(fingerprints=set([1]))
+    assert list(gen) == []

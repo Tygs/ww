@@ -46,7 +46,7 @@ def stops_when(iterable, condition: Union[Callable, Any]):
     return itertools.takewhile(lambda x: not condition(x), iterable)
 
 
-def skip_duplicates(iterable: Iterable, key: Callable=None):
+def skip_duplicates(iterable: Iterable, key: Callable=None, fingerprints=()):
     """
         Returns a generator that will yield all objects from iterable, skipping
         duplicates.
@@ -94,7 +94,8 @@ def skip_duplicates(iterable: Iterable, key: Callable=None):
             [Test('bar'), Test('other')]
 
     """
-    fingerprints = set()
+
+    fingerprints = fingerprints or set()
 
     try:
         # duplicate some code to gain perf in the most common case
