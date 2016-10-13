@@ -1,9 +1,13 @@
-
+# coding: utf-8
+from __future__ import (
+    unicode_literals, division, print_function, absolute_import
+)
 import re
 
 import pytest
 
 from ww import s, g, f
+
 
 def test_lshift():
 
@@ -74,16 +78,16 @@ def test_join():
 
 def test_from_bytes():
 
-    assert isinstance(s.decode(b'abc', 'ascii'), s)
-    assert s.decode(b'abc', 'ascii') == 'abc'
+    assert isinstance(s.from_bytes(b'abc', 'ascii'), s)
+    assert s.from_bytes(b'abc', 'ascii') == 'abc'
 
-    assert s.decode('é'.encode('utf8'), 'utf8') == 'é'
+    assert s.from_bytes('é'.encode('utf8'), 'utf8') == 'é'
 
     with pytest.raises(UnicodeDecodeError):
-        s.decode('é'.encode('cp850'), 'ascii')
+        s.from_bytes('é'.encode('cp850'), 'ascii')
 
     with pytest.raises(ValueError):
-        s.decode('é'.encode('cp850'))
+        s.from_bytes('é'.encode('cp850'))
 
 
 def test_format():
@@ -97,4 +101,3 @@ def test_format():
     assert f(string) == "1 1.0"
     assert isinstance(f(string), s)
     assert f('{foo} {bar[0]:.1f}') == "1 1.0"
-

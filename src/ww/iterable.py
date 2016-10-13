@@ -1,8 +1,10 @@
 
 import itertools
 
+from future.utils import raise_from
+
 try:
-    from typing import Union, Callable, Iterable, Any
+    from typing import Union, Callable, Iterable, Any  # noqa
 except ImportError:
     pass
 
@@ -98,7 +100,8 @@ def skip_duplicates(iterable, key, fingerprints=()):
             ...
             >>> list(skip_duplicates([Test(), Test(), Test('other')]))
             [Test('bar'), Test('bar'), Test('other')]
-            >>> list(skip_duplicates([Test(), Test(), Test('other')], lambda x: x.foo))
+            >>> list(skip_duplicates([Test(), Test(), Test('other')],
+                                     lambda x: x.foo))
             [Test('bar'), Test('other')]
 
     """
@@ -130,6 +133,7 @@ def skip_duplicates(iterable, key, fingerprints=()):
                 "not." % (type(fingerprint), x))
         else:
             raise
+
 
 # TODO: test that on big iterators to check for recursion limit
 def chunks(iterable, chunksize, cast=tuple):
@@ -195,7 +199,7 @@ def at_index(iterable, index):
 
         return next(itertools.islice(iterable, index, index + 1))
     except (StopIteration, IndexError) as e:
-        raise IndexError('Index "%d" out of range' % index) from e
+        raise_from(IndexError('Index "%d" out of range' % index), e)
 
 
 def first_true(iterable, func):
@@ -209,7 +213,7 @@ def first_true(iterable, func):
     try:
         return next((x for x in iterable if func(x)))
     except StopIteration as e:
-        raise IndexError('No match for %s' % func) from e
+        raise_from(IndexError('No match for %s' % func), e)
 
 
 def iterslice(iterable, start=0, stop=None, step=1):

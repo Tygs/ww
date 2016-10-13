@@ -158,18 +158,6 @@ def test_zip():
     assert isinstance(gen, g)
     assert list(gen) == list(zip("123", "abc", (True, False, None)))
 
-def test_cycle():
-
-    gen = g("12").cycle()
-    assert isinstance(gen, g)
-
-    assert next(gen) == "1"
-    assert next(gen) == "2"
-    assert next(gen) == "1"
-    assert next(gen) == "2"
-    assert next(gen) == "1"
-    assert next(gen) == "2"
-
 
 def test_chunks():
 
@@ -206,7 +194,7 @@ def test_groupby():
     gen = g(data).groupby(lambda x: x[1])
     assert isinstance(gen, g)
     assert list(gen) == [(False, ((4, False), (5, False))),
-                        (True, ((1, True), (2, True), (3, True), (6, True)))]
+                         (True, ((1, True), (2, True), (3, True), (6, True)))]
 
     gen = g(data).groupby(lambda x: x[1], reverse=True)
     assert list(gen) == [(True, ((1, True), (2, True), (3, True), (6, True))),
@@ -256,9 +244,9 @@ def test_lasts():
     assert b == "5"
 
     a, b, c = g("12").lasts(3)
-    assert a == None
+    assert a is None
     assert b == "1"
-    assert c is "2"
+    assert c == "2"
 
     a, b, c, d = g("12").lasts(4, default="other")
     assert a == b == "other"

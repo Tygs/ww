@@ -2,25 +2,26 @@
 
 # TODO stuff returning a strings in g() would be an s() object
 # TODO s inherit from str
-# TODO : add encoding detection, fuzzy_decode() to make the best of shitty decoding,
-# unidecode, slug, etc,
+# TODO : add encoding detection, fuzzy_decode() to make the best of shitty
+# decoding, unidecode, slug, etc,
 # f() for format, if no args are passed, it uses local
 # TODO: join() autocast to str, with a template you can customize
 # TODO: match.__repr__ should show match, groups, groupsdict in summary
 # TODO : if g() is called on a callable, iter() calls the callable everytime
-# TODO: s.split(sep, maxsplit, minsize, default=None)
-# so "a,b".split(',', minsize=2, default="b") == "a".split(',' minsize=2, default="b")
+# TODO: s.split(sep, maxsplit, minsize, default=None) so "a,b".split(',',
+# minsize=2, default="b") == "a".split(',' minsize=2, default="b")
 # TODO: g() + 1 apply the operation to the whole generator (as for *, / and -)
 # TODO: g(x) + g(y) apply (a + b for a, b in zip(x, y))
 # TODO : gen = gen(y); gen[gen > 5] has the same behavior as numpy array
-# TODO: add features from https://docs.python.org/3/library/itertools.html#itertools-recipes
+# TODO: add features from
+# https://docs.python.org/3/library/itertools.html#itertools-recipes
 # TODO: allow s >> allow you to wrap a string AND dedent it automatically
 
 from __future__ import (unicode_literals, absolute_import,
                         division, print_function)
 
 try:
-    from typing import Any, Union, Callable, Iterable
+    from typing import Any, Union, Callable, Iterable  # noqa
 except ImportError:
     pass
 
@@ -36,13 +37,15 @@ from itertools import chain, tee, cycle
 import ww
 
 from ww.iterable import (at_index, iterslice, first_true, skip_duplicates,
-                       chunks, window, groupby, firsts, lasts)
+                         chunks, window, groupby, firsts, lasts)
 from ww.utils import ensure_tuple
 
 # todo : merge https://toolz.readthedocs.org/en/latest/api.html
 # toto : merge https://github.com/kachayev/fn.py
-# TODO: merge https://pythonhosted.org/natsort/natsort_keygen.html#natsort.natsort_keygen
+# TODO: merge
+# https://pythonhosted.org/natsort/natsort_keygen.html#natsort.natsort_keygen
 # TODO: merge minibelt
+
 
 class IterableWrapper:
 
@@ -321,7 +324,7 @@ class IterableWrapper:
         return g(new)
 
     def join(self, joiner, formatter=lambda s, t: t.format(s), template="{}"):
-         # type: (iterable, Callable, str) -> ww.s.StringWrapper
+        # type: (iterable, Callable, str) -> ww.s.StringWrapper
         return ww.s(joiner).join(self, formatter, template)
 
     def __repr__(self):
