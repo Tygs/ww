@@ -47,16 +47,6 @@ def test_next():
     assert gen.next() == 'b'
 
 
-def test_cycle():
-
-    gen = g('abc').cycle()
-    assert next(gen) == 'a'
-    assert next(gen) == 'b'
-    assert next(gen) == 'c'
-    assert next(gen) == 'a'
-    assert isinstance(gen, g)
-
-
 def test_add():
 
     gen = g('abc') + 'def'

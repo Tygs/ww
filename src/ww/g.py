@@ -21,6 +21,9 @@
 # TODO: add features from https://docs.python.org/3/library/itertools.html#itertools-recipes
 # TODO: allow s >> allow you to wrap a string AND dedent it automatically
 
+from __future__ import (unicode_literals, absolute_import,
+                        division, print_function)
+
 try:
     from typing import Any, Union, Callable, Iterable
 except ImportError:
@@ -135,7 +138,7 @@ class IterableWrapper:
         """
         return g(chain(other, self.iterator))
 
-    # TODO: allow non iterable
+    # TODO: allow non iterables
     def __sub__(self, other):
         # type: (Iterable)
         """Yield items that are not in the other iterable.
@@ -157,7 +160,7 @@ class IterableWrapper:
         filter_from = set(ensure_tuple(other))
         return g(x for x in self if x not in filter_from)
 
-    def __rsub__(self, other: Iterable):
+    def __rsub__(self, other):
         # type: (Iterable)
         """Return a generator that concatenates both generators.
 
@@ -174,7 +177,8 @@ class IterableWrapper:
         filter_from = set(self.iterator)
         return g(x for x in other if x not in filter_from)
 
-    def __mul__(self, num: int):
+    def __mul__(self, num):
+        # type: (int)
         """Duplicate itself and concatenate the results.
 
         Args:
@@ -191,7 +195,8 @@ class IterableWrapper:
 
     __rmul__ = __mul__
 
-    def tee(self, num: int=2):
+    def tee(self, num=2):
+        # type: (int)
         """Return copies of this generator.
 
         Proxy to itertools.tee().
@@ -265,7 +270,8 @@ class IterableWrapper:
 
         return g(iterslice(self.iterator, start, stop, step))
 
-    def map(self, func: Callable):
+    def map(self, func):
+        # type: (Callable)
         """Apply map() then wrap in g()
 
         Args:
@@ -279,7 +285,8 @@ class IterableWrapper:
         """
         return g(imap(func, self.iterator))
 
-    def zip(self, *others: Iterable):
+    def zip(self, *others):
+        # type: (*Iterable)
         """Apply zip() then wrap in g()
 
         Args:
@@ -292,12 +299,15 @@ class IterableWrapper:
         return g(cycle(self.iterator))
 
     def sorted(self, keyfunc=None, reverse=False):
+        # type: (Callable, bool)
         return g(sorted(self.iterator, key=reverse))
 
     def groupby(self, keyfunc=None, reverse=False, cast=tuple):
+        # type: (Callable, bool, Callable)
         return g(groupby(self, keyfunc, reverse, cast))
 
     def enumerate(self, start):
+        # type: (int)
         return g(enumerate(self.iterator, start))
 
     def count(self):
@@ -322,18 +332,21 @@ class IterableWrapper:
         return set(self.iterator)
 
     def join(self, separator="", cast=str):
+        # type: (str, Callable)
         return separator.join(cast(x) for x in self.iterator)
 
     def __repr__(self):
         return "<g generator>"
 
-    def chunks(self, chunksize, cast=__builtins__['tuple']):
+    def chunks(self, chunksize, cast=tuple):
+        # type: (int, Callable)
         """
             Yields items from an iterator in iterable chunks.
         """
         return g(chunks(self.iterator, chunksize, cast))
 
-    def window(self, size=2, cast=__builtins__['tuple']):
+    def window(self, size=2, cast=tuple):
+        # type: (int, Callable)
         """
         Yields iterms by bunch of a given size, but rolling only one item
         in and out at a time when iterating.
@@ -341,16 +354,20 @@ class IterableWrapper:
         return g(window(self.iterator, size, cast))
 
     def firsts(self, items=1, default=None):
+        # type: (int, Any)
         """ Lazily return the first x items from this iterable or default. """
-        return g(firsts(self, items, default))
+        return g(firsts(self.iterator, items, default))
 
     def lasts(self, items=1, default=None):
+        # type: (int, Any)
         """ Lazily return the lasts x items from this iterable or default. """
-        return g(lasts(self, items, default))
+        return g(lasts(self.iterator, items, default))
 
     # allow using a bloom filter as an alternative to set
     # https://github.com/jaybaird/python-bloomfilter
-    def skip_duplicates(self, key=lambda x: x,  fingerprints=None):
+    # TODO : find a way to say "any type accepting 'in'"
+    def skip_duplicates(self, key=lambda x: x, fingerprints=None):
+        # type: (Callable, Any)
         return g(skip_duplicates(self.iterator, key, fingerprints))
 
 
