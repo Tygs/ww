@@ -1,6 +1,11 @@
 Wonderful Wrappers
 ====================
 
+.. image:: http://travis-ci.org/Tygs/ww.svg?branch=master
+    :target: https://travis-ci.org/Tygs/ww
+.. image:: http://coveralls.io/repos/github/Tygs/ww/badge.svg?branch=master
+    :target: https://coveralls.io/github/Tygs/ww?branch=master
+
 Developement
 -------------
 
