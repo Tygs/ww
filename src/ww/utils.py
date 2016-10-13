@@ -9,3 +9,7 @@ def ensure_tuple(val):
         except TypeError:
             return (val,)
     return (val,)
+
+
+def nop(val):
+    return val

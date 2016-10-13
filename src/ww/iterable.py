@@ -1,12 +1,16 @@
 
 import itertools
 
-from typing import Union, Callable, Iterable, Any
+try:
+    from typing import Union, Callable, Iterable, Any
+except ImportError:
+    pass
 
 from collections import deque
 
 
-def starts_when(iterable, condition: Union[Callable, Any]):
+def starts_when(iterable, condition):
+    # type: (Iterable, Union[Callable, Any])
     """Start yielding items when a condition arise.
 
     Args:
@@ -26,7 +30,8 @@ def starts_when(iterable, condition: Union[Callable, Any]):
     return itertools.dropwhile(lambda x: not condition(x), iterable)
 
 
-def stops_when(iterable, condition: Union[Callable, Any]):
+def stops_when(iterable, condition):
+    # type: (Iterable, Union[Callable, Any])
     """Stop yielding items when a condition arise.
 
     Args:
@@ -46,7 +51,8 @@ def stops_when(iterable, condition: Union[Callable, Any]):
     return itertools.takewhile(lambda x: not condition(x), iterable)
 
 
-def skip_duplicates(iterable: Iterable, key: Callable=None, fingerprints=()):
+def skip_duplicates(iterable, key, fingerprints=()):
+    # type: (Iterable, Iterable, Any)
     """
         Returns a generator that will yield all objects from iterable, skipping
         duplicates.
@@ -125,15 +131,18 @@ def skip_duplicates(iterable: Iterable, key: Callable=None, fingerprints=()):
 
 # TODO: test that on big iterators to check for recursion limit
 def chunks(iterable, chunksize, cast=tuple):
+    # type: (Iterable, int, Callable)
     """
         Yields items from an iterator in iterable chunks.
     """
     it = iter(iterable)
     while True:
-        yield cast(itertools.chain([next(it)], itertools.islice(it, chunksize - 1)))
+        yield cast(itertools.chain([next(it)],
+                   itertools.islice(it, chunksize - 1)))
 
 
 def window(iterable, size=2, cast=tuple):
+    # type: (Iterable, int, Callable)
     """
         Yields iterms by bunch of a given size, but rolling only one item
         in and out at a time when iterating.
@@ -170,6 +179,7 @@ def window(iterable, size=2, cast=tuple):
 
 
 def at_index(iterable: Iterable, index: int):
+    # type: (Iterable, int)
     """" Return the item at the index of this iterable or raises IndexError.
 
         WARNING: this will consume generators.
@@ -187,6 +197,7 @@ def at_index(iterable: Iterable, index: int):
 
 
 def first_true(iterable, func):
+    # type: (Iterable, int)
     """" Return the first item of the iterable for which func(item) == True.
 
         Or raises IndexError.
@@ -200,6 +211,7 @@ def first_true(iterable, func):
 
 
 def iterslice(iterable, start=0, stop=None, step=1):
+    # type: (Iterable, int, int, int)
     """ Like itertools.islice, but accept int and callables.
 
         If `start` is a callable, start the slice after the first time
@@ -230,12 +242,14 @@ def iterslice(iterable, start=0, stop=None, step=1):
 
 
 def groupby(iterable, keyfunc=None, reverse=False, cast=tuple):
+    # type: (Iterable, Callable, bool, Callable)
     sorted_iterable = sorted(iterable, key=keyfunc, reverse=reverse)
     for key, group in itertools.groupby(sorted_iterable, keyfunc):
         yield key, cast(group)
 
 
-def first(iterable, items=1, default=None):
+def firsts(iterable, items=1, default=None):
+    # type: (Iterable, int, Any)
     """ Lazily return the first x items from this iterable or default. """
 
     try:
@@ -251,9 +265,9 @@ def first(iterable, items=1, default=None):
         yield default
 
 
-def last(iterable, items=1, default=None):
+def lasts(iterable, items=1, default=None):
+    # type: (Iterable, int, Any)
     """ Lazily return the last x items from this iterable or default. """
-
 
     last_items = deque(iterable, maxlen=items)
 

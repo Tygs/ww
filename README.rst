@@ -9,8 +9,8 @@ Install for dev::
     python setup.py develop
 
 Style Guide :
- - Python: PEP8 (https://www.python.org/dev/peps/pep-0008/)
- - JS: Google (http://google-styleguide.googlecode.com/svn/trunk/javascriptguide.xml)
+ - Python: `PEP8`_
+ - Docstrings: `Google style`_
 
 Deactivate dev mode:
 
@@ -26,3 +26,7 @@ After that, you can run tests covergage this way::
     py.test --cov ww tests
     # dump an HTML report in htmlcov dir
     py.test  --cov-report html --cov ww tests
+
+
+.. _PEP8: https://www.python.org/dev/peps/pep-0008/
+.. _Google style: http://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html

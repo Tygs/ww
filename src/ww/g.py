@@ -1,10 +1,4 @@
 
-# TODO : make a s object for strings with split(regex|iterable), replace(regex|iterable)
-# TODO : flags can be passed as strings. Ex: s.search('regex', flags='ig')
-# TODO : make s.search(regex) return a wrapper with __bool__ evaluating to
-# false if no match instead of None and allow default value for group(x)
-# also allow match[1] to return group(1) and match['foo'] to return groupdict['foo']
-# TODO .groups would be a g() object
 # TODO stuff returning a strings in g() would be an s() object
 # TODO s inherit from str
 # TODO : add encoding detection, fuzzy_decode() to make the best of shitty decoding,
@@ -21,7 +15,13 @@
 # TODO: add features from https://docs.python.org/3/library/itertools.html#itertools-recipes
 # TODO: allow s >> allow you to wrap a string AND dedent it automatically
 
-from typing import Any, Union, Callable, Iterable
+from __future__ import (unicode_literals, absolute_import,
+                        division, print_function)
+
+try:
+    from typing import Any, Union, Callable, Iterable
+except ImportError:
+    pass
 
 try:
     from itertools import imap, izip, ifilter
@@ -32,18 +32,21 @@ except ImportError:
 
 from itertools import chain, tee, cycle
 
-from .iterable import (at_index, iterslice, first_true, skip_duplicates,
-                       chunks, window, groupby, first, last)
-from .utils import ensure_tuple
+import ww
+
+from ww.iterable import (at_index, iterslice, first_true, skip_duplicates,
+                       chunks, window, groupby, firsts, lasts)
+from ww.utils import ensure_tuple
 
 # todo : merge https://toolz.readthedocs.org/en/latest/api.html
 # toto : merge https://github.com/kachayev/fn.py
 # TODO: merge https://pythonhosted.org/natsort/natsort_keygen.html#natsort.natsort_keygen
+# TODO: merge minibelt
 
+class IterableWrapper:
 
-class g:
-
-    def __init__(self, iterable: Iterable, *args: Iterable):
+    def __init__(self, iterable, *args):
+        # type: (Iterable, *Iterable)
         """Initialize self.iterator to iter(iterable)
 
         If several iterables are passed, they are concatenated.
@@ -80,7 +83,8 @@ class g:
                                "has been called on it.")
         return self.iterator
 
-    def next(self, default: Any=None):
+    def next(self, default=None):
+        # type: (Any)
         """Call next() on inner iterable.
 
         Args:
@@ -98,7 +102,8 @@ class g:
 
     __next__ = next
 
-    def __add__(self, other: Iterable):
+    def __add__(self, other):
+        # type: (Iterable)
         """Return a generator that concatenates both generators.
 
         It uses itertools.chain(self, other_iterable).
@@ -113,7 +118,8 @@ class g:
         """
         return g(chain(self.iterator, other))
 
-    def __radd__(self, other: Iterable):
+    def __radd__(self, other):
+        # type: (Iterable)
         """Return a generator that concatenates both generators.
 
         It uses itertools.chain(other_iterable, self).
@@ -128,8 +134,9 @@ class g:
         """
         return g(chain(other, self.iterator))
 
-    # TODO: allow non iterable
-    def __sub__(self, other: Iterable):
+    # TODO: allow non iterables
+    def __sub__(self, other):
+        # type: (Iterable)
         """Yield items that are not in the other iterable.
 
         The second iterable will be turned into a set so make sure:
@@ -149,7 +156,8 @@ class g:
         filter_from = set(ensure_tuple(other))
         return g(x for x in self if x not in filter_from)
 
-    def __rsub__(self, other: Iterable):
+    def __rsub__(self, other):
+        # type: (Iterable)
         """Return a generator that concatenates both generators.
 
         It uses itertools.chain(other_iterable, self).
@@ -165,7 +173,8 @@ class g:
         filter_from = set(self.iterator)
         return g(x for x in other if x not in filter_from)
 
-    def __mul__(self, num: int):
+    def __mul__(self, num):
+        # type: (int)
         """Duplicate itself and concatenate the results.
 
         Args:
@@ -182,7 +191,8 @@ class g:
 
     __rmul__ = __mul__
 
-    def tee(self, num: int=2):
+    def tee(self, num=2):
+        # type: (int)
         """Return copies of this generator.
 
         Proxy to itertools.tee().
@@ -256,7 +266,8 @@ class g:
 
         return g(iterslice(self.iterator, start, stop, step))
 
-    def map(self, func: Callable):
+    def map(self, func):
+        # type: (Callable)
         """Apply map() then wrap in g()
 
         Args:
@@ -270,7 +281,8 @@ class g:
         """
         return g(imap(func, self.iterator))
 
-    def zip(self, *others: Iterable):
+    def zip(self, *others):
+        # type: (*Iterable)
         """Apply zip() then wrap in g()
 
         Args:
@@ -283,12 +295,15 @@ class g:
         return g(cycle(self.iterator))
 
     def sorted(self, keyfunc=None, reverse=False):
+        # type: (Callable, bool)
         return g(sorted(self.iterator, key=reverse))
 
     def groupby(self, keyfunc=None, reverse=False, cast=tuple):
+        # type: (Callable, bool, Callable)
         return g(groupby(self, keyfunc, reverse, cast))
 
     def enumerate(self, start):
+        # type: (int)
         return g(enumerate(self.iterator, start))
 
     def count(self):
@@ -303,38 +318,57 @@ class g:
         self.iterator, new = tee(self.iterator)
         return g(new)
 
-    def list(self):
-        return list(self.iterator)
-
-    def tuple(self):
-        return tuple(self.iterator)
-
-    def set(self):
-        return set(self.iterator)
-
-    def join(self, separator="", cast=str):
-        return separator.join(cast(x) for x in self.iterator)
+    def join(self, joiner, formatter=lambda s, t: t.format(s), template="{}"):
+         # type: (iterable, Callable, str)
+        return ww.s(joiner).join(self, formatter, template)
 
     def __repr__(self):
-        return "<g generator>"
+        return "<IterableWrapper generator>"
 
-    def chunks(self, chunksize, cast=__builtins__['tuple']):
+    # TODO: use t() instead of tuple
+    def chunks(self, chunksize, cast=tuple):
+        # type: (int, Callable)
         """
             Yields items from an iterator in iterable chunks.
         """
         return g(chunks(self.iterator, chunksize, cast))
 
-    def window(self, size=2, cast=__builtins__['tuple']):
+    def window(self, size=2, cast=tuple):
+        # type: (int, Callable)
         """
         Yields iterms by bunch of a given size, but rolling only one item
         in and out at a time when iterating.
         """
         return g(window(self.iterator, size, cast))
 
+    def firsts(self, items=1, default=None):
+        # type: (int, Any)
+        """ Lazily return the first x items from this iterable or default. """
+        return g(firsts(self.iterator, items, default))
+
+    def lasts(self, items=1, default=None):
+        # type: (int, Any)
+        """ Lazily return the lasts x items from this iterable or default. """
+        return g(lasts(self.iterator, items, default))
+
     # allow using a bloom filter as an alternative to set
     # https://github.com/jaybaird/python-bloomfilter
-    def skip_duplicates(self, key=lambda x: x,  fingerprints=None):
+    # TODO : find a way to say "any type accepting 'in'"
+    def skip_duplicates(self, key=lambda x: x, fingerprints=None):
+        # type: (Callable, Any)
         return g(skip_duplicates(self.iterator, key, fingerprints))
 
-# TODO: add data attribute that can hold data and will be available no
-# matter how many time you wrap g().
+    # DO NOT MOVE THOSE METHODS UPPER as they would shadow the builtins inside
+    def list(self):
+        # TODO: cast to l()
+        return list(self.iterator)
+
+    def tuple(self):
+        # TODO: cast to t()
+        return tuple(self.iterator)
+
+    def set(self):
+        return set(self.iterator)
+
+# expose IterableWrapper the shortcut "g"
+g = IterableWrapper
