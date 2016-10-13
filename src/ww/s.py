@@ -26,7 +26,11 @@ from textwrap import dedent
 
 import chardet
 
-from formatizer import LiteralFormatter
+try:
+    from formatizer import LiteralFormatter
+    FORMATTER = LiteralFormatter()
+except ImportError:
+    FORMATTER = str
 
 from .g import g
 from .utils import ensure_tuple
@@ -46,8 +50,6 @@ REGEX_FLAGS = {
     'u': re.UNICODE,
     'l': re.LOCALE,
 }
-
-FORMATTER = LiteralFormatter()
 
 
 class MetaS(type):

@@ -1,10 +1,4 @@
 
-# TODO : make a s object for strings with split(regex|iterable), replace(regex|iterable)
-# TODO : flags can be passed as strings. Ex: s.search('regex', flags='ig')
-# TODO : make s.search(regex) return a wrapper with __bool__ evaluating to
-# false if no match instead of None and allow default value for group(x)
-# also allow match[1] to return group(1) and match['foo'] to return groupdict['foo']
-# TODO .groups would be a g() object
 # TODO stuff returning a strings in g() would be an s() object
 # TODO s inherit from str
 # TODO : add encoding detection, fuzzy_decode() to make the best of shitty decoding,
@@ -38,9 +32,11 @@ except ImportError:
 
 from itertools import chain, tee, cycle
 
-from .iterable import (at_index, iterslice, first_true, skip_duplicates,
+import ww
+
+from ww.iterable import (at_index, iterslice, first_true, skip_duplicates,
                        chunks, window, groupby, firsts, lasts)
-from .utils import ensure_tuple
+from ww.utils import ensure_tuple
 
 # todo : merge https://toolz.readthedocs.org/en/latest/api.html
 # toto : merge https://github.com/kachayev/fn.py
@@ -322,12 +318,12 @@ class IterableWrapper:
         self.iterator, new = tee(self.iterator)
         return g(new)
 
-    def join(self, separator="", cast=str):
-        # type: (str, Callable)
-        return separator.join(cast(x) for x in self.iterator)
+    def join(self, joiner, formatter=lambda s, t: t.format(s), template="{}"):
+         # type: (iterable, Callable, str)
+        return ww.s(joiner).join(self, formatter, template)
 
     def __repr__(self):
-        return "<g generator>"
+        return "<IterableWrapper generator>"
 
     # TODO: use t() instead of tuple
     def chunks(self, chunksize, cast=tuple):

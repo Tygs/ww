@@ -284,3 +284,11 @@ def test_skip_duplicates():
 
     gen = g([1]).skip_duplicates(fingerprints=set([1]))
     assert list(gen) == []
+
+
+def test_join():
+
+    assert g(range(3)).join(',') == "0,1,2"
+    assert g(range(3)).join(',', template="{}#") == "0#,1#,2#"
+    string = g(range(3)).join(',', formatter=lambda x, y: str(x * x))
+    assert string == "0,1,4"
