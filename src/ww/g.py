@@ -24,7 +24,7 @@
 from typing import Any, Union, Callable, Iterable
 
 try:
-    from itertools import (imap, izip, ifilter)
+    from itertools import imap, izip, ifilter
 except ImportError:
     imap = map
     izip = zip
@@ -331,13 +331,10 @@ class g:
         """
         return g(window(self.iterator, size, cast))
 
-    def first(self, items=1, default=None):
-        return g(first(self.iterator, items, default))
-
-    def last(self, items=1, default=None):
-        return g(last(self.iterator, items, default))
-
     # allow using a bloom filter as an alternative to set
     # https://github.com/jaybaird/python-bloomfilter
     def skip_duplicates(self, key=lambda x: x,  fingerprints=None):
         return g(skip_duplicates(self.iterator, key, fingerprints))
+
+# TODO: add data attribute that can hold data and will be available no
+# matter how many time you wrap g().

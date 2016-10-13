@@ -26,17 +26,13 @@ from textwrap import dedent
 
 import chardet
 
+from formatizer import LiteralFormatter
+
 from .g import g
 from .utils import ensure_tuple
 
 # TODO: make sure we copy all methods from str but return s()
 
-
-class MetaS(type):
-    """ Allow s >> 'text' as a shortcut to dedent strings """
-
-    def __rshift__(self, other):
-        return s(dedent(other))
 
 REGEX_FLAGS = {
     'm': re.MULTILINE,
@@ -50,6 +46,25 @@ REGEX_FLAGS = {
     'u': re.UNICODE,
     'l': re.LOCALE,
 }
+
+FORMATTER = LiteralFormatter()
+
+
+class MetaS(type):
+    """ Allow s >> 'text' as a shortcut to dedent strings """
+
+    def __rshift__(self, other):
+        return s(dedent(other))
+
+
+class MetaF(type):
+    """ Allow f >> 'text' as a shortcut to dedent f-string """
+
+    def __rshift__(self, other):
+        caller_frame = inspect.currentframe().f_back
+        caller_globals = caller_frame.f_globals
+        caller_locals = caller_frame.f_locals
+        return s(dedent(FORMATTER.format(other, caller_globals, caller_locals)))
 
 
 class s(str, metaclass=MetaS):
@@ -114,7 +129,7 @@ class s(str, metaclass=MetaS):
         return s(res)
 
     def dedent(self):
-        return s >> self
+        return s(dedent(self))
 
     def join(self, iterable, formatter=lambda s, t: t.format(s), template="{}"):
         return s(str.join(self, (formatter(st, template) for st in iterable)))
@@ -139,11 +154,33 @@ class s(str, metaclass=MetaS):
             return s(str.format(self, **pframe.f_locals))
         return s(str.format(self, *args, **kwargs))
 
+    def to_bool(self, val, default=None):
+        try:
+            return {
+                '1': True,
+                '0': False,
+                'true': True,
+                'false': False,
+                'on': True,
+                'off': False,
+                'yes': True,
+                'no': False,
+                '': False
+            }[val.casefold()]
+        except KeyError:
+            if default is not None:
+                return default
+            raise ValueError(f >> """
+                             '{vals!r}' cannot be converted to a boolean. Clean
+                             your input or set the 'default' parameter to True
+                             or False.
+                             """)
+
 
 # TODO: make sure each class call self._class instead of s(), g(), etc
-class f:
-
+class f(metaclass=MetaF):
     def __new__(cls, string):
-        pframe = inspect.currentframe().f_back
-        return s(string.format(**pframe.f_locals))
-
+        caller_frame = inspect.currentframe().f_back
+        caller_globals = caller_frame.f_globals
+        caller_locals = caller_frame.f_locals
+        return FORMATTER.format(string, caller_globals, caller_locals)

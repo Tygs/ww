@@ -2,10 +2,10 @@
     Wrapper for bytes
 """
 
-unpack
+# unpack
 
-decode
+# decode
 
-detect encoding
+# detect encoding
 
-help with text mixed with bytes
+# help with text mixed with bytes
