@@ -221,57 +221,57 @@ def test_groupby():
     assert list(gen) == [('i', 4), ('u', 3), ('y', 6)]
 
 
-def test_first():
+def test_firsts():
 
-    gen = g("12345").first()
+    gen = g("12345").firsts()
     assert isinstance(gen, g)
 
     a, = gen
     assert a == "1"
 
-    a, b = g("12345").first(2)
+    a, b = g("12345").firsts(2)
     assert a == "1"
     assert b == "2"
 
-    a, b, c = g("12").first(3)
+    a, b, c = g("12").firsts(3)
     assert a == "1"
     assert b == "2"
     assert c is None
 
-    a, b, c, d = g("12").first(4, default="other")
+    a, b, c, d = g("12").firsts(4, default="other")
     assert a == "1"
     assert b == "2"
     assert c == d == "other"
 
     gen = g(range(5))
-    a, b = gen.first(2)
+    a, b = gen.firsts(2)
     assert list(gen) == [2, 3, 4]
 
 
-def test_last():
+def test_lasts():
 
-    gen = g("12345").last()
+    gen = g("12345").lasts()
     assert isinstance(gen, g)
 
     a, = gen
     assert a == "5"
 
-    a, b = g("12345").last(2)
+    a, b = g("12345").lasts(2)
     assert a == "4"
     assert b == "5"
 
-    a, b, c = g("12").last(3)
+    a, b, c = g("12").lasts(3)
     assert a == None
     assert b == "1"
     assert c is "2"
 
-    a, b, c, d = g("12").last(4, default="other")
+    a, b, c, d = g("12").lasts(4, default="other")
     assert a == b == "other"
     assert c == "1"
     assert d == "2"
 
     gen = g(range(5))
-    a, b = gen.last(2)
+    a, b = gen.lasts(2)
     assert list(gen) == []
 
 

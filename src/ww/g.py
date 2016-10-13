@@ -21,7 +21,10 @@
 # TODO: add features from https://docs.python.org/3/library/itertools.html#itertools-recipes
 # TODO: allow s >> allow you to wrap a string AND dedent it automatically
 
-from typing import Any, Union, Callable, Iterable
+try:
+    from typing import Any, Union, Callable, Iterable
+except ImportError:
+    pass
 
 try:
     from itertools import imap, izip, ifilter
@@ -33,17 +36,18 @@ except ImportError:
 from itertools import chain, tee, cycle
 
 from .iterable import (at_index, iterslice, first_true, skip_duplicates,
-                       chunks, window, groupby, first, last)
+                       chunks, window, groupby, firsts, lasts)
 from .utils import ensure_tuple
 
 # todo : merge https://toolz.readthedocs.org/en/latest/api.html
 # toto : merge https://github.com/kachayev/fn.py
 # TODO: merge https://pythonhosted.org/natsort/natsort_keygen.html#natsort.natsort_keygen
+# TODO: merge minibelt
 
+class IterableWrapper:
 
-class g:
-
-    def __init__(self, iterable: Iterable, *args: Iterable):
+    def __init__(self, iterable, *args):
+        # type: (Iterable, *Iterable)
         """Initialize self.iterator to iter(iterable)
 
         If several iterables are passed, they are concatenated.
@@ -80,7 +84,8 @@ class g:
                                "has been called on it.")
         return self.iterator
 
-    def next(self, default: Any=None):
+    def next(self, default=None):
+        # type: (Any)
         """Call next() on inner iterable.
 
         Args:
@@ -98,7 +103,8 @@ class g:
 
     __next__ = next
 
-    def __add__(self, other: Iterable):
+    def __add__(self, other):
+        # type: (Iterable)
         """Return a generator that concatenates both generators.
 
         It uses itertools.chain(self, other_iterable).
@@ -113,7 +119,8 @@ class g:
         """
         return g(chain(self.iterator, other))
 
-    def __radd__(self, other: Iterable):
+    def __radd__(self, other):
+        # type: (Iterable)
         """Return a generator that concatenates both generators.
 
         It uses itertools.chain(other_iterable, self).
@@ -129,7 +136,8 @@ class g:
         return g(chain(other, self.iterator))
 
     # TODO: allow non iterable
-    def __sub__(self, other: Iterable):
+    def __sub__(self, other):
+        # type: (Iterable)
         """Yield items that are not in the other iterable.
 
         The second iterable will be turned into a set so make sure:
@@ -150,6 +158,7 @@ class g:
         return g(x for x in self if x not in filter_from)
 
     def __rsub__(self, other: Iterable):
+        # type: (Iterable)
         """Return a generator that concatenates both generators.
 
         It uses itertools.chain(other_iterable, self).
@@ -331,10 +340,19 @@ class g:
         """
         return g(window(self.iterator, size, cast))
 
+    def firsts(self, items=1, default=None):
+        """ Lazily return the first x items from this iterable or default. """
+        return g(firsts(self, items, default))
+
+    def lasts(self, items=1, default=None):
+        """ Lazily return the lasts x items from this iterable or default. """
+        return g(lasts(self, items, default))
+
     # allow using a bloom filter as an alternative to set
     # https://github.com/jaybaird/python-bloomfilter
     def skip_duplicates(self, key=lambda x: x,  fingerprints=None):
         return g(skip_duplicates(self.iterator, key, fingerprints))
 
-# TODO: add data attribute that can hold data and will be available no
-# matter how many time you wrap g().
+
+# expose IterableWrapper the shortcut "g"
+g = IterableWrapper

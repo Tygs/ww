@@ -235,7 +235,7 @@ def groupby(iterable, keyfunc=None, reverse=False, cast=tuple):
         yield key, cast(group)
 
 
-def first(iterable, items=1, default=None):
+def firsts(iterable, items=1, default=None):
     """ Lazily return the first x items from this iterable or default. """
 
     try:
@@ -251,9 +251,8 @@ def first(iterable, items=1, default=None):
         yield default
 
 
-def last(iterable, items=1, default=None):
+def lasts(iterable, items=1, default=None):
     """ Lazily return the last x items from this iterable or default. """
-
 
     last_items = deque(iterable, maxlen=items)
 
