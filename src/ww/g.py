@@ -322,15 +322,6 @@ class IterableWrapper:
         self.iterator, new = tee(self.iterator)
         return g(new)
 
-    def list(self):
-        return list(self.iterator)
-
-    def tuple(self):
-        return tuple(self.iterator)
-
-    def set(self):
-        return set(self.iterator)
-
     def join(self, separator="", cast=str):
         # type: (str, Callable)
         return separator.join(cast(x) for x in self.iterator)
@@ -338,6 +329,7 @@ class IterableWrapper:
     def __repr__(self):
         return "<g generator>"
 
+    # TODO: use t() instead of tuple
     def chunks(self, chunksize, cast=tuple):
         # type: (int, Callable)
         """
@@ -370,6 +362,17 @@ class IterableWrapper:
         # type: (Callable, Any)
         return g(skip_duplicates(self.iterator, key, fingerprints))
 
+    # DO NOT MOVE THOSE METHODS UPPER as they would shadow the builtins inside
+    def list(self):
+        # TODO: cast to l()
+        return list(self.iterator)
+
+    def tuple(self):
+        # TODO: cast to t()
+        return tuple(self.iterator)
+
+    def set(self):
+        return set(self.iterator)
 
 # expose IterableWrapper the shortcut "g"
 g = IterableWrapper
