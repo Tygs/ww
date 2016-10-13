@@ -1,3 +1,8 @@
+# coding: utf-8
+
+from __future__ import (unicode_literals, absolute_import,
+                        division, print_function)
+
 
 # TODO : make a s object for strings with split(regex|iterable), replace(regex|iterable)
 # TODO : flags can be passed as strings. Ex: s.search('regex', flags='ig')
@@ -13,7 +18,7 @@
 
 # f() for format, if no args are passed, it uses local. Also allow f >> ""
 
-# t() or t >> for a jinja2 template (opeional dependancy ?)
+# t() or t >> for a jinja2 template (optional dependency ?)
 # something for translation ?
 
 
@@ -69,7 +74,7 @@ class MetaF(type):
         return s(dedent(FORMATTER.format(other, caller_globals, caller_locals)))
 
 
-class s(str, metaclass=MetaS):
+class StringWrapper(str, metaclass=MetaS):
 
     # TODO: check for bytes in __new__. Say we don't accept it and recommand
     # to either use u'' in front of the string, from __future__ or
@@ -178,6 +183,8 @@ class s(str, metaclass=MetaS):
                              or False.
                              """)
 
+# shortcut from StringWrapper
+s = StringWrapper
 
 # TODO: make sure each class call self._class instead of s(), g(), etc
 class f(metaclass=MetaF):

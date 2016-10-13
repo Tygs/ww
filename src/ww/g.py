@@ -1,3 +1,4 @@
+# coding: utf-8
 
 # TODO stuff returning a strings in g() would be an s() object
 # TODO s inherit from str
@@ -46,7 +47,7 @@ from ww.utils import ensure_tuple
 class IterableWrapper:
 
     def __init__(self, iterable, *args):
-        # type: (Iterable, *Iterable)
+        # type: (Iterable, *Iterable) -> None
         """Initialize self.iterator to iter(iterable)
 
         If several iterables are passed, they are concatenated.
@@ -84,7 +85,7 @@ class IterableWrapper:
         return self.iterator
 
     def next(self, default=None):
-        # type: (Any)
+        # type: (Any) -> Any
         """Call next() on inner iterable.
 
         Args:
@@ -103,7 +104,7 @@ class IterableWrapper:
     __next__ = next
 
     def __add__(self, other):
-        # type: (Iterable)
+        # type: (Iterable) -> IterableWrapper
         """Return a generator that concatenates both generators.
 
         It uses itertools.chain(self, other_iterable).
@@ -119,7 +120,7 @@ class IterableWrapper:
         return g(chain(self.iterator, other))
 
     def __radd__(self, other):
-        # type: (Iterable)
+        # type: (Iterable) -> IterableWrapper
         """Return a generator that concatenates both generators.
 
         It uses itertools.chain(other_iterable, self).
@@ -136,7 +137,7 @@ class IterableWrapper:
 
     # TODO: allow non iterables
     def __sub__(self, other):
-        # type: (Iterable)
+        # type: (Iterable) -> IterableWrapper
         """Yield items that are not in the other iterable.
 
         The second iterable will be turned into a set so make sure:
@@ -157,7 +158,7 @@ class IterableWrapper:
         return g(x for x in self if x not in filter_from)
 
     def __rsub__(self, other):
-        # type: (Iterable)
+        # type: (Iterable) -> IterableWrapper
         """Return a generator that concatenates both generators.
 
         It uses itertools.chain(other_iterable, self).
@@ -174,7 +175,7 @@ class IterableWrapper:
         return g(x for x in other if x not in filter_from)
 
     def __mul__(self, num):
-        # type: (int)
+        # type: (int) -> IterableWrapper
         """Duplicate itself and concatenate the results.
 
         Args:
@@ -192,7 +193,7 @@ class IterableWrapper:
     __rmul__ = __mul__
 
     def tee(self, num=2):
-        # type: (int)
+        # type: (int) -> IterableWrapper
         """Return copies of this generator.
 
         Proxy to itertools.tee().
@@ -210,7 +211,8 @@ class IterableWrapper:
         return gen
 
     # TODO: allow negative end boundary
-    def __getitem__(self, index: Union[int, slice]):
+    def __getitem__(self, index):
+        # type: (Union[int, slice]) -> IterableWrapper
         """Act like [x] or [x:y:z] on a generator. Warnings apply.
 
         If you use an index instead of slice, you should know it WILL
@@ -267,7 +269,7 @@ class IterableWrapper:
         return g(iterslice(self.iterator, start, stop, step))
 
     def map(self, func):
-        # type: (Callable)
+        # type: (Callable) -> IterableWrapper
         """Apply map() then wrap in g()
 
         Args:
@@ -282,7 +284,7 @@ class IterableWrapper:
         return g(imap(func, self.iterator))
 
     def zip(self, *others):
-        # type: (*Iterable)
+        # type: (*Iterable) -> IterableWrapper
         """Apply zip() then wrap in g()
 
         Args:
@@ -295,15 +297,15 @@ class IterableWrapper:
         return g(cycle(self.iterator))
 
     def sorted(self, keyfunc=None, reverse=False):
-        # type: (Callable, bool)
+        # type: (Callable, bool) -> IterableWrapper
         return g(sorted(self.iterator, key=reverse))
 
     def groupby(self, keyfunc=None, reverse=False, cast=tuple):
-        # type: (Callable, bool, Callable)
+        # type: (Callable, bool, Callable) -> IterableWrapper
         return g(groupby(self, keyfunc, reverse, cast))
 
     def enumerate(self, start):
-        # type: (int)
+        # type: (int) -> IterableWrapper
         return g(enumerate(self.iterator, start))
 
     def count(self):
@@ -319,7 +321,7 @@ class IterableWrapper:
         return g(new)
 
     def join(self, joiner, formatter=lambda s, t: t.format(s), template="{}"):
-         # type: (iterable, Callable, str)
+         # type: (iterable, Callable, str) -> ww.s.StringWrapper
         return ww.s(joiner).join(self, formatter, template)
 
     def __repr__(self):
@@ -327,14 +329,14 @@ class IterableWrapper:
 
     # TODO: use t() instead of tuple
     def chunks(self, chunksize, cast=tuple):
-        # type: (int, Callable)
+        # type: (int, Callable) -> IterableWrapper
         """
             Yields items from an iterator in iterable chunks.
         """
         return g(chunks(self.iterator, chunksize, cast))
 
     def window(self, size=2, cast=tuple):
-        # type: (int, Callable)
+        # type: (int, Callable) -> IterableWrapper
         """
         Yields iterms by bunch of a given size, but rolling only one item
         in and out at a time when iterating.
@@ -342,12 +344,12 @@ class IterableWrapper:
         return g(window(self.iterator, size, cast))
 
     def firsts(self, items=1, default=None):
-        # type: (int, Any)
+        # type: (int, Any) -> IterableWrapper
         """ Lazily return the first x items from this iterable or default. """
         return g(firsts(self.iterator, items, default))
 
     def lasts(self, items=1, default=None):
-        # type: (int, Any)
+        # type: (int, Any) -> IterableWrapper
         """ Lazily return the lasts x items from this iterable or default. """
         return g(lasts(self.iterator, items, default))
 
@@ -355,7 +357,7 @@ class IterableWrapper:
     # https://github.com/jaybaird/python-bloomfilter
     # TODO : find a way to say "any type accepting 'in'"
     def skip_duplicates(self, key=lambda x: x, fingerprints=None):
-        # type: (Callable, Any)
+        # type: (Callable, Any) -> IterableWrapper
         return g(skip_duplicates(self.iterator, key, fingerprints))
 
     # DO NOT MOVE THOSE METHODS UPPER as they would shadow the builtins inside
