@@ -19,27 +19,26 @@
 
 # WARNING: do not import unicode_literals, as it makes docstrings containins
 # strings fail on python2
-from __future__ import (absolute_import,
-                        division, print_function)
+from __future__ import (absolute_import, division, print_function)
 
-try:
+import itertools
+
+try: # Python 2 doesn't have those imports
     from typing import Any, Union, Callable, Iterable  # noqa
 except ImportError:
     pass
 
-try:
-    from itertools import imap, izip, ifilter
+try: # Aliases for Python 2
+    from itertools import imap, izip, ifilter # type: ignore noqa
 except ImportError:
     imap = map
     izip = zip
     ifilter = filter
 
-from itertools import chain, tee, cycle
-
-import ww
+import ww # absolute import to avoid some circular references
 
 from ww.iterable import (at_index, iterslice, first_true, skip_duplicates,
-                         chunks, window, groupby, firsts, lasts)
+                         chunks, window, firsts, lasts)
 from ww.utils import ensure_tuple
 
 # todo : merge https://toolz.readthedocs.org/en/latest/api.html
@@ -71,7 +70,7 @@ class IterableWrapper:
         """
 
         if args:
-            iterable = chain(iterable, *args)
+            iterable = itertools.chain(iterable, *args)
         self.iterator = iter(iterable)
         self._tee_called = False
 
@@ -122,7 +121,7 @@ class IterableWrapper:
             >>> list(g(range(3)) + "abc")
             [0, 1, 2, 'a', 'b', 'c']
         """
-        return g(chain(self.iterator, other))
+        return g(itertools.chain(self.iterator, other))
 
     def __radd__(self, other):
         # type: (Iterable) -> IterableWrapper
@@ -138,7 +137,7 @@ class IterableWrapper:
             >>> list("abc" + g(range(3)))
             ['a', 'b', 'c', 0, 1, 2]
         """
-        return g(chain(other, self.iterator))
+        return g(itertools.chain(other, self.iterator))
 
     # TODO: allow non iterables
     def __sub__(self, other):
@@ -150,7 +149,6 @@ class IterableWrapper:
             - you are ok with it being consumed if it's a generator.
             - it contains only hashable items.
 
-
         Args:
             other: The iterable to filter from.
 
@@ -160,7 +158,7 @@ class IterableWrapper:
             [0, 4, 5]
         """
         filter_from = set(ensure_tuple(other))
-        return g(x for x in self if x not in filter_from)
+        return g(x for x in self.iterator if x not in filter_from)
 
     def __rsub__(self, other):
         # type: (Iterable) -> IterableWrapper
@@ -193,7 +191,7 @@ class IterableWrapper:
             >>> list(2 * g(range(3)))
             [0, 1, 2, 0, 1, 2]
         """
-        return g(chain(*tee(self.iterator, num)))
+        return g(itertools.chain(*itertools.tee(self.iterator, num)))
 
     __rmul__ = __mul__
 
@@ -211,13 +209,13 @@ class IterableWrapper:
             >>> list(tuple(x) for x in g(range(3)).tee(3))
             [(0, 1, 2), (0, 1, 2), (0, 1, 2)]
         """
-        gen = g(g(x) for x in tee(self, num))
+        gen = g(g(x) for x in itertools.tee(self.iterator, num))
         self._tee_called = True
         return gen
 
     # TODO: allow negative end boundary
     def __getitem__(self, index):
-        # type: (Union[int, slice]) -> IterableWrapper
+        # type: (Union[int, slice, Callable]) -> Union[IterableWrapper, Any]
         """Act like [x] or [x:y:z] on a generator. Warnings apply.
 
         If you use an index instead of slice, you should know it WILL
@@ -262,12 +260,12 @@ class IterableWrapper:
             return at_index(self.iterator, index)
 
         if callable(index):
-            return first_true(self.iterator, index)
+            return first_true(self.iterator, index)  # type: ignore
 
         try:
-            start = index.start or 0
-            step = index.step or 1
-            stop = index.stop
+            start = index.start or 0  # type: ignore
+            step = index.step or 1  # type: ignore
+            stop = index.stop  # type: ignore
         except AttributeError:
             raise ValueError('Indexing works only with integers or callables')
 
@@ -299,15 +297,18 @@ class IterableWrapper:
         return g(izip(self.iterator, *others))
 
     def cycle(self):
-        return g(cycle(self.iterator))
+        return g(itertools.cycle(self.iterator))
 
     def sorted(self, keyfunc=None, reverse=False):
         # type: (Callable, bool) -> IterableWrapper
-        return g(sorted(self.iterator, key=reverse))
+        # using __builtins__ to avoid shadowing
+        return g(__builtins__.sorted(self.iterator, key=keyfunc,
+                                     reverse=reverse))
 
     def groupby(self, keyfunc=None, reverse=False, cast=tuple):
         # type: (Callable, bool, Callable) -> IterableWrapper
-        return g(groupby(self, keyfunc, reverse, cast))
+        # full name to avoid shadowing
+        return g(ww.iterable.groupby(self.iterator, keyfunc, reverse, cast))
 
     def enumerate(self, start):
         # type: (int) -> IterableWrapper
@@ -322,11 +323,11 @@ class IterableWrapper:
             return i
 
     def copy(self):
-        self.iterator, new = tee(self.iterator)
+        self.iterator, new = itertools.tee(self.iterator)
         return g(new)
 
     def join(self, joiner, formatter=lambda s, t: t.format(s), template="{}"):
-        # type: (iterable, Callable, str) -> ww.s.StringWrapper
+        # type: (Iterable, Callable, str) -> ww.s.StringWrapper
         return ww.s(joiner).join(self, formatter, template)
 
     def __repr__(self):

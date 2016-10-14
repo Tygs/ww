@@ -4,11 +4,14 @@ import itertools
 from future.utils import raise_from
 
 try:
-    from typing import Union, Callable, Iterable, Any  # noqa
+    from typing import Union, Callable, Iterable, Any, TypeVar   # noqa
 except ImportError:
     pass
 
 from collections import deque
+
+
+T = TypeVar('T')
 
 
 def starts_when(iterable, condition):
@@ -60,7 +63,7 @@ def stops_when(iterable, condition):
 
 
 def skip_duplicates(iterable, key=None, fingerprints=()):
-    # type: (Iterable, Iterable, Any) -> Iterable
+    # type: (Iterable, Callable, Any) -> Iterable
     """
         Returns a generator that will yield all objects from iterable, skipping
         duplicates.
@@ -191,7 +194,7 @@ def window(iterable, size=2, cast=tuple):
 
 
 def at_index(iterable, index):
-    # type: (Iterable, int) -> Iterable
+    # type: (Iterable[T], int) -> T
     """" Return the item at the index of this iterable or raises IndexError.
 
         WARNING: this will consume generators.
@@ -209,7 +212,7 @@ def at_index(iterable, index):
 
 
 def first_true(iterable, func):
-    # type: (Iterable, int) -> Any
+    # type: (Iterable[T], Callable) -> T
     """" Return the first item of the iterable for which func(item) == True.
 
         Or raises IndexError.
@@ -223,7 +226,7 @@ def first_true(iterable, func):
 
 
 def iterslice(iterable, start=0, stop=None, step=1):
-    # type: (Iterable, int, int, int) -> Iterable
+    # type: (Iterable[T], int, int, int) -> Iterable[T]
     """ Like itertools.islice, but accept int and callables.
 
         If `start` is a callable, start the slice after the first time
@@ -238,14 +241,14 @@ def iterslice(iterable, start=0, stop=None, step=1):
 
     if not isinstance(start, int):
 
-        # [callable:callable]
+        # [Callable:Callable]
         if not isinstance(stop, int) and stop:
             return stops_when(starts_when(iterable, start), stop)
 
-        # [callable:int]
+        # [Callable:int]
         return starts_when(itertools.islice(iterable, None, stop, step), start)
 
-    # [int:callable]
+    # [int:Callable]
     if not isinstance(stop, int) and stop:
         return stops_when(itertools.islice(iterable, start, None, step), stop)
 
@@ -261,7 +264,7 @@ def groupby(iterable, keyfunc=None, reverse=False, cast=tuple):
 
 
 def firsts(iterable, items=1, default=None):
-    # type: (Iterable, int, Any) -> Iterable
+    # type: (Iterable[T], int, T) -> Iterable[T]
     """ Lazily return the first x items from this iterable or default. """
 
     try:
@@ -278,7 +281,7 @@ def firsts(iterable, items=1, default=None):
 
 
 def lasts(iterable, items=1, default=None):
-    # type: (Iterable, int, Any) -> Iterable
+    # type: (Iterable[T], int, T) -> Iterable[T]
     """ Lazily return the last x items from this iterable or default. """
 
     last_items = deque(iterable, maxlen=items)
@@ -286,5 +289,5 @@ def lasts(iterable, items=1, default=None):
     for x in range(items - len(last_items)):
         yield default
 
-    for x in last_items:
-        yield x
+    for y in last_items:
+        yield y

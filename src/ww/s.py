@@ -3,9 +3,6 @@
 from __future__ import (unicode_literals, absolute_import,
                         division, print_function)
 
-
-# TODO : make a s object for strings with split(regex|iterable),
-# replace(regex|iterable)
 # TODO : flags can be passed as strings. Ex: s.search('regex', flags='ig')
 # TODO : make s.search(regex) return a wrapper with __bool__ evaluating to
 # false if no match instead of None and allow default value for group(x)
@@ -22,7 +19,6 @@ from __future__ import (unicode_literals, absolute_import,
 
 # t() or t >> for a jinja2 template (optional dependency ?)
 # something for translation ?
-
 
 # TODO: match.__repr__ should show match, groups, groupsdict in summary
 
@@ -47,12 +43,6 @@ from .utils import ensure_tuple
 
 # TODO: make sure we copy all methods from str but return s()
 
-try:
-    unicode = unicode
-except NameError:
-    unicode = str
-
-
 REGEX_FLAGS = {
     'm': re.MULTILINE,
     'x': re.VERBOSE,
@@ -71,6 +61,13 @@ try:
 except AttributeError:
     pass
 
+
+try:
+    unicode = unicode  # type: ignore
+except NameError:
+    unicode = str
+
+
 FORMATTER = LiteralFormatter()
 
 
@@ -78,6 +75,7 @@ class MetaS(type):
     """ Allow s >> 'text' as a shortcut to dedent strings """
 
     def __rshift__(self, other):
+        # TODO: figure out how to allow this to work with subclasses
         return s(dedent(other))
 
 
@@ -88,12 +86,14 @@ class MetaF(type):
         caller_frame = inspect.currentframe().f_back
         caller_globals = caller_frame.f_globals
         caller_locals = caller_frame.f_locals
+        # TODO: figure out how to allow StringWrapper subclasses to work
+        # with this
         return s(dedent(
                  FORMATTER.format(other, caller_globals, caller_locals)
                  ))
 
 
-class StringWrapper(with_metaclass(MetaS, unicode)):
+class StringWrapper(with_metaclass(MetaS, unicode)):  # type: ignore
 
     # TODO: check for bytes in __new__. Say we don't accept it and recommand
     # to either use u'' in front of the string, from __future__ or
@@ -110,6 +110,12 @@ class StringWrapper(with_metaclass(MetaS, unicode)):
         return flags
 
     def split(self, *separators, **kwargs):
+
+        # TODO, when separator is empty, make it split on non printable
+        # caracters
+
+        if not separators:
+            return self.__class__(unicode.split(self))
 
         for sep in separators:
             if not isinstance(sep, basestring):
@@ -129,8 +135,8 @@ class StringWrapper(with_metaclass(MetaS, unicode)):
             # TODO: find a better error message
 
             for chunk in re.split(sep, self, maxsplit, flags):
-                for item in s(chunk)._split(separators[1:],
-                                            maxsplit=0, flags=0):
+                for item in self.__class__(chunk)._split(separators[1:],
+                                           maxsplit=0, flags=0):
                     yield item
         except IndexError:
             yield self
@@ -155,18 +161,18 @@ class StringWrapper(with_metaclass(MetaS, unicode)):
         for pattern, sub in zip(patterns, substitutions):
             res = re.sub(pattern, sub, res, count=maxreplace, flags=flags)
 
-        return s(res)
+        return self.__class__(res)
 
     def dedent(self):
-        return s(dedent(self))
+        return self.__class__(dedent(self))
 
     def join(self, iterable, formatter=lambda s, t: t.format(s),
              template="{}"):
-        return s(unicode.join(self,
-                              (formatter(st, template) for st in iterable)))
+        formatted_iterable = (formatter(st, template) for st in iterable)
+        return self.__class__(unicode.join(self, formatted_iterable))
 
-    @staticmethod
-    def from_bytes(byte_string, encoding=None, errors='strict'):
+    @classmethod
+    def from_bytes(cls, byte_string, encoding=None, errors='strict'):
         if encoding is None:
             encoding = chardet.detect(byte_string)['encoding']
             raise ValueError(f >> """
@@ -178,13 +184,13 @@ class StringWrapper(with_metaclass(MetaS, unicode)):
                              errors='replace' or 'ignore'.
                              """)
 
-        return s(byte_string.decode(encoding, errors=errors))
+        return cls(byte_string.decode(encoding, errors=errors))
 
     def format(self, *args, **kwargs):
         if not args and not kwargs:
             pframe = inspect.currentframe().f_back
-            return s(unicode.format(self, **pframe.f_locals))
-        return s(unicode.format(self, *args, **kwargs))
+            return self.__class__(unicode.format(self, **pframe.f_locals))
+        return self.__class__(unicode.format(self, *args, **kwargs))
 
     def to_bool(self, val, default=None):
         try:
@@ -213,7 +219,7 @@ s = StringWrapper
 
 
 # TODO: make sure each class call self._class instead of s(), g(), etc
-class f(with_metaclass(MetaF)):
+class f(with_metaclass(MetaF)):  # type: ignore
 
     def __new__(cls, string):
         caller_frame = inspect.currentframe().f_back
