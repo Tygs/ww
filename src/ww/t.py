@@ -41,13 +41,18 @@ class t(tuple):
         Returns: a d that stems from self
 
         Raises:
-            ValueError: dictionary update sequence element #index has length len(tuple); 2 is required
+            ValueError: dictionary update sequence element #index has length
+            len(tuple); 2 is required
 
-            TypeError: cannot convert dictionary update sequence element #index to a sequence
+            TypeError: cannot convert dictionary update sequence element
+            #index to a sequence
         """
         for i, x in enumerate(self):
             if type(x) == int:
-                raise TypeError("cannot convert dictionary update sequence element #{} to a sequence".format(i))
+                raise TypeError("cannot convert dictionary update sequence "
+                                "element #{} to a sequence".format(i))
             elif len(x) != 2:
-                raise ValueError("dictionary update sequence element #{0} has length {1}; 2 is required".format(i, len(x)))
+                raise ValueError(("dictionary update sequence element #{0} "
+                                 "has length {1}; 2 is required")
+                                 .format(i, len(x)))
         return ww.d(self)
