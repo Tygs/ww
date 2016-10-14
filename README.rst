@@ -5,6 +5,9 @@ Wonderful Wrappers
     :target: https://travis-ci.org/Tygs/ww
 .. image:: http://coveralls.io/repos/github/Tygs/ww/badge.svg?branch=master
     :target: https://coveralls.io/github/Tygs/ww?branch=master
+.. image:: https://readthedocs.org/projects/wonderful-wrappers/badge/?version=latest
+    :target: http://wonderful-wrappers.readthedocs.io/en/latest/?badge=latest
+    :alt: Documentation Status
 
 Unobtrusive wrappers improving Python builtins and more.
 
