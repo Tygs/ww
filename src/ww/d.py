@@ -1,7 +1,6 @@
 # TODO: delete(keys)
 
 
-
 class d(dict):
     def isubset(self, *keys):
         """Return key, self[key] as generator for key in keys.
@@ -37,7 +36,8 @@ class d(dict):
     def swap(self):
         """Swap key and value
 
-        /!\ Be carreful, if there are duplicate values, only one will survive /!\
+        /!\ Be carreful, if there are duplicate values, only one will
+        survive /!\
 
         Example:
 
@@ -67,12 +67,11 @@ class d(dict):
             yield key, value
 
     @classmethod
-    def fromkeys(cls, *keys, value):
+    def fromkeys(cls, *keys, **kwargs):
         """Create a new d from
 
         Args:
             *keys: Iterable containing keys
-            value: Value to associate to the key. If callable, will be value(key) else value
 
         Returns: d
 
@@ -81,6 +80,7 @@ class d(dict):
             >>> d.fromkeys(*'123', value=4)
             {'3': 4, '1': 4, '2': 4}
         """
+        value = kwargs.get('value', None)
         if not callable(value):
             return d(super(d, cls).fromkeys(keys, value))
 
@@ -106,6 +106,24 @@ class d(dict):
             {1:1, 2:2, 3:4, 4:5}
         """
         self.update(other_dict)
+        return self
+
+    def delete(self, *keys):
+        """Delete keys from dict
+
+        Args:
+            *keys: Iterable containing keys to delete
+
+        Returns: self
+
+        Example:
+
+            >>> current_dict = d({1:1, 2:2, 3:3})
+            >>> current_dict.delete(*[1,2])
+            {3: 3}
+        """
+        for key in keys:
+            self.pop(key, None)
         return self
 
     def __add__(self, other):

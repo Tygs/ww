@@ -120,3 +120,10 @@ def test_merge():
     assert len(curr_dict) == 4
     assert curr_dict[3] == "ccc"
     assert curr_dict[4] == "hell"
+
+
+def test_delete():
+    current_dict = d({1: 1, 2: 2, 3: 3})
+    current_dict = current_dict.delete(*[1, 2, 5])
+    assert len(current_dict) == 1
+    assert current_dict[3] == 3
