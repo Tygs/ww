@@ -127,3 +127,12 @@ def test_delete():
     current_dict = current_dict.delete(*[1, 2, 5])
     assert len(current_dict) == 1
     assert current_dict[3] == 3
+
+
+def test_iadd():
+    current_dict = d({1: 1, 2: 2, 3: 3})
+    current_dict += {5: 6, 6: 7}
+    print(current_dict)
+    assert len(current_dict) == 5
+    assert current_dict[5] == 6
+    assert current_dict[6] == 7

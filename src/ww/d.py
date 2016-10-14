@@ -1,7 +1,7 @@
 # TODO: delete(keys)
 
 
-class d(dict):
+class DictWrapper(dict):
     def isubset(self, *keys):
         """Return key, self[key] as generator for key in keys.
 
@@ -161,3 +161,22 @@ class d(dict):
         """
         copy = d(other.copy())
         return copy.merge(self)
+
+
+    def __iadd__(self, other):
+        """Add other in self
+
+        Args:
+            other: Dict to add in self
+
+        Returns: Merded dict
+
+        Example:
+
+            >>> current_dict = d({1: 1, 2: 2, 3: 3})
+            >>> current_dict += {5: 6, 6: 7}
+            {1: 1, 2: 2, 3: 3, 5: 6, 6: 7}
+        """
+        return self.merge(other)
+
+d=DictWrapper
