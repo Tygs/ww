@@ -32,6 +32,7 @@ lazily slice generators?
 add dictionaries?
 
 ::
+
     >>> from ww import d
     >>> dic = d({'a': 1})
     >>> dic
