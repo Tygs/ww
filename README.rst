@@ -31,7 +31,7 @@ lazily slice generators?
 
 add dictionaries?
 
-::t
+::
     >>> from ww import d
     >>> dic = d({'a': 1})
     >>> dic
@@ -72,9 +72,9 @@ have a `len` attribute on lists?
     >>> string.replace(('i', 'u'), 'o')  # the original signature is ok too
     u'fozz bozz'
 
-There are many, many, more goodies.
+And there are many, many, more goodies.
 
-Install it by running::
+Install them by running::
 
     python setup.py install
 
@@ -84,7 +84,7 @@ Then `read the doc`_.
 
 Compatibility: CPython 2.7+/3.3+ and pypy2. The lib is pure Python.
 
-Developement
+Development
 -------------
 
 You can offer PR with your contributions to ww. They should include unit tests,
