@@ -23,19 +23,19 @@ from __future__ import (absolute_import, division, print_function)
 
 import itertools
 
-try: # Python 2 doesn't have those imports
+try:  # Python 2 doesn't have those imports
     from typing import Any, Union, Callable, Iterable  # noqa
 except ImportError:
     pass
 
-try: # Aliases for Python 2
-    from itertools import imap, izip, ifilter # type: ignore noqa
+try:  # Aliases for Python 2
+    from itertools import imap, izip, ifilter  # type: ignore noqa
 except ImportError:
     imap = map
     izip = zip
     ifilter = filter
 
-import ww # absolute import to avoid some circular references
+import ww  # absolute import to avoid some circular references
 
 from ww.iterable import (at_index, iterslice, first_true, skip_duplicates,
                          chunks, window, firsts, lasts)

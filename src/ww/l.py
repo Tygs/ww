@@ -1,6 +1,7 @@
-from ww import s
+import ww
 
 
+# TODO: allow subclass to chose the string class
 class l(list):
 
     @property
@@ -33,7 +34,7 @@ class l(list):
             u'0,1,4'
         """
 
-        return s(joiner).join(self, formatter, template)
+        return ww.s(joiner).join(self, formatter, template)
 
     def append(self, *values):
         """Append values at the end of the list

@@ -184,10 +184,12 @@ class MetaF(type):
         # TODO: figure out how to allow StringWrapper subclasses to work
         # with this
         return StringWrapper(dedent(
-                 FORMATTER.format(other, caller_globals, caller_locals)
-                 ))
+            FORMATTER.format(other, caller_globals, caller_locals)
+        ))
 
-# TODO: refactor methods to be only wrapper for functions from a separate module
+
+# TODO: refactor methods to be only wrappers
+#       for functions from a separate module
 # TODO: override capitalize, title, upper, lower, etc
 class StringWrapper(with_metaclass(MetaF, unicode)):  # type: ignore
 
@@ -207,8 +209,10 @@ class StringWrapper(with_metaclass(MetaF, unicode)):  # type: ignore
 
     # kwargs allow compat with 2.7 and 3 since you can't use
     # keyword-only arguments in python 2
-    def split(self, *separators, **kwargs):
-        # type: (*str, int, str)
+    # TODO: remove empty strings
+    # TODO: wrap output in StringWrapper
+    def split(self, *separators, **kwargs):  # type: ignore
+        # type: (*str, int, str) -> list[StringWrapper]
         """ Like str.split, but accept several separators and regexes
 
             Args:
@@ -233,13 +237,15 @@ class StringWrapper(with_metaclass(MetaF, unicode)):  # type: ignore
 
                 >>> string = s('fat     black cat, big bad dog')
                 >>> string.split().list()
-                ['fat', 'black', 'cat,', 'big', 'bad', 'dog']
+                [u'fat', u'black', u'cat,', u'big', u'bad', u'dog']
         """
         # TODO, when separator is empty, make it split on non printable
         # caracters
 
-        if not separators:
-            return g(unicode.split(self))
+        maxsplit = kwargs.get('maxsplit', 0)  # 0 means "no limit" for re.split
+        if not separators:  # TODO: pass maxsplit
+            maxsplit = maxsplit or -1  # -1 means "no limit" for unicode.split
+            return g(map(self.__class__, unicode.split(self, None, maxsplit)))
 
         for sep in separators:
             if not isinstance(sep, basestring):
@@ -251,8 +257,9 @@ class StringWrapper(with_metaclass(MetaF, unicode)):  # type: ignore
                 raise TypeError(msg)
 
         # TODO: split let many spaces. Fix it.
-        return g(self._split(separators, kwargs.get('maxsplit', 0),
-                             self._parse_flags(kwargs.get('flags', 0))))
+
+        flags = self._parse_flags(kwargs.get('flags', 0))
+        return g(map(self.__class__, self._split(separators, maxsplit, flags)))
 
     def _split(self, separators, maxsplit=0, flags=0):
         try:
@@ -260,9 +267,10 @@ class StringWrapper(with_metaclass(MetaF, unicode)):  # type: ignore
             # TODO: find a better error message
 
             # TODO: maxsplit is buggy, fix it
+            separators = separators[1:]
             for chunk in re.split(sep, self, maxsplit, flags):
-                for item in self.__class__(chunk)._split(separators[1:],
-                                           maxsplit=0, flags=0):
+                chunk = self.__class__(chunk)
+                for item in chunk._split(separators, maxsplit=0, flags=0):
                     yield item
         except IndexError:
             yield self
@@ -326,7 +334,6 @@ class StringWrapper(with_metaclass(MetaF, unicode)):  # type: ignore
             pframe = inspect.currentframe().f_back
             return self.__class__(unicode.format(self, **pframe.f_locals))
         return self.__class__(unicode.format(self, *args, **kwargs))
-
 
     def to_bool(self, default=None):
         try:
