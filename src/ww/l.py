@@ -5,8 +5,8 @@ class l(list):
 
     @property
     def len(self):
-        """Return len(self)
-
+        """Return object length
+        
         Example:
 
             >>> lst = l([0, 1, 2, 3])
@@ -16,9 +16,23 @@ class l(list):
 
         return len(self)
 
-    def join(self, iterable, formatter=lambda s, t: t.format(s),
+    def join(self, joiner, formatter=lambda s, t: t.format(s),
              template="{}"):
-        return s.join(iterable, formatter, template)
+        """Join values and convert to string
+        
+        Example:
+            
+            >>> lst = l('012')
+            >>> lst.join(',')
+            '0,1,2'
+            >>> lst.join(',', template="{}#")
+            '0#,1#,2#'
+            >>> string = lst.join(',', formatter = lambda x, y: str(int(x) ** 2))
+            >>> string
+            '0,1,4'
+        """
+    
+        return  s(joiner).join(self, formatter, template)
 
     def append(self, *values):
         """Append values at the end of the list
@@ -44,13 +58,12 @@ class l(list):
         for value in values:
             list.append(self, value)
         return self
-    # todo : remplement slicing like g()
-
-    def extend(self, *values):
-        """Chaining Extend *values on self
+    
+    def extend(self, *iterables):
+        """Add all values of all iterables at the end of the list
 
         Args:
-            *values: iterable to use for the iner state.
+            iterables: iterable which content to add at the end
 
         Example:
 
@@ -64,7 +77,7 @@ class l(list):
             >>> lst
             [1, 2, 3, 4, 5, 6]
         """
-
-        for value in values:
+        
+        for value in iterables:
             list.extend(self, value)
         return self
