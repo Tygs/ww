@@ -1,9 +1,6 @@
 coverage
-future
 pytest
 pytest-cov
 flake8
 tox
-sphinx
-typing
 mypy-lang

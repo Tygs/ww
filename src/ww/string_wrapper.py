@@ -1,15 +1,109 @@
 # coding: utf-8
 
-from __future__ import (unicode_literals, absolute_import,
-                        division, print_function)
+"""
+    StringWrapper is a convenient wrapper around strings. It behaves
+    like strings (the API is compatible), but make small improvements to the
+    existing methods and add some new methods.
 
+    Example:
+
+        Import::
+
+            >>> from ww import s
+
+        You always have the more explicit import at your disposal::
+
+            >>> from ww.string_wrapper import StringWrapper
+
+        `s` is just an alias of StringWrapper, but it's what most people will
+        want to use most of the time. Hence it's what we will use in the
+        examples.
+
+        Basic usages::
+
+            >>> string = s("this is a test")
+            >>> string
+            u'this is a test'
+            >>> type(string)
+            <class 'ww.string_wrapper.StringWrapper'>
+            >>> string.upper() # regular string methods are all there
+            u'THIS IS A TEST'
+            >>> string[:4] + "foo" # same behaviors you expect from a string
+            u'thisfoo'
+
+        Some existing methods, while still compatible with the previous
+        behavior, have been improved::
+
+            >>> string.replace('e', 'a') # just as before
+            u'this is a tast'
+            >>> string.replace(('e', 'i'), ('a', 'o')) # and a little more
+            u'thos os a tast'
+            >>> s('-').join(range(10))  # join() autocast to string
+            u'0-1-2-3-4-5-6-7-8-9'
+            >>> s('-').join(range(10), template="{:.2f}")
+            u'0.00-1.00-2.00-3.00-4.00-5.00-6.00-7.00-8.00-9.00'
+
+        Some methods have been added::
+
+            >>> print(s('''
+            ... This should be over indented.
+            ... But it will not be.
+            ... Because dedent() calls textwrap.dedent() on the string.
+            ... ''').dedent())
+            <BLANKLINE>
+            This should be over indented.
+            But it will not be.
+            Because dedent() calls textwrap.dedent() on the string.
+            <BLANKLINE>
+
+        By overriding operators, we can provide some interesting syntaxic
+        sugar, such as this shortcut for writting long dedented text::
+
+            >>> print(s >> '''
+            ... Calling dedent() is overrated.
+            ... Overriding __rshift__ is much more fun.
+            ... ''')
+            <BLANKLINE>
+            Calling dedent() is overrated.
+            Overriding __rshift__ is much more fun.
+            <BLANKLINE>
+
+        Also we hacked something that looks like Python 3.6 f-string, but
+        that works in Python 2.7 and 3.3+:
+
+            >>> a = 1
+            >>> f('Sweet, I can print locals: {a}')
+            u'Sweet, I can print locals: 1'
+            >>> print(f >> '''
+            ... Yes it works with long string too.
+            ... And globals, if you are into that kind
+            ... of things.
+            ... But we have only {a} for now.
+            ... ''')
+            <BLANKLINE>
+            Yes it works with long string too.
+            And globals, if you are into that kind
+            of things.
+            But we have only 1 for now.
+            <BLANKLINE>
+
+        There is much, much more...
+
+        You'll find bellow the detailed documentation for each method of
+        StringWrapper. Go have a look, there is some great stuff here!
+"""
+
+from __future__ import (absolute_import, division, print_function)
+
+# TODO: add home link button to documention web page
 # TODO : flags can be passed as strings. Ex: s.search('regex', flags='ig')
 # TODO : make s.search(regex) return a wrapper with __bool__ evaluating to
 # false if no match instead of None and allow default value for group(x)
 # also allow match[1] to return group(1) and match['foo'] to return
 # groupdict['foo']
 # TODO .groups would be a g() object
-
+# TODO: .pp() to pretty_print
+# TODO: override slicing to return part s
 
 # TODO : add encoding detection, fuzzy_decode() to make the best of shitty
 # decoding, unidecode, slug, etc,
@@ -27,6 +121,7 @@ import inspect
 
 from textwrap import dedent
 
+import six
 import chardet
 
 try:
@@ -76,7 +171,7 @@ class MetaS(type):
 
     def __rshift__(self, other):
         # TODO: figure out how to allow this to work with subclasses
-        return s(dedent(other))
+        return StringWrapper(dedent(other))
 
 
 class MetaF(type):
@@ -88,12 +183,13 @@ class MetaF(type):
         caller_locals = caller_frame.f_locals
         # TODO: figure out how to allow StringWrapper subclasses to work
         # with this
-        return s(dedent(
+        return StringWrapper(dedent(
                  FORMATTER.format(other, caller_globals, caller_locals)
                  ))
 
-
-class StringWrapper(with_metaclass(MetaS, unicode)):  # type: ignore
+# TODO: refactor methods to be only wrapper for functions from a separate module
+# TODO: override capitalize, title, upper, lower, etc
+class StringWrapper(with_metaclass(MetaF, unicode)):  # type: ignore
 
     # TODO: check for bytes in __new__. Say we don't accept it and recommand
     # to either use u'' in front of the string, from __future__ or
@@ -109,13 +205,41 @@ class StringWrapper(with_metaclass(MetaS, unicode)):  # type: ignore
 
         return flags
 
+    # kwargs allow compat with 2.7 and 3 since you can't use
+    # keyword-only arguments in python 2
     def split(self, *separators, **kwargs):
+        # type: (*str, int, str)
+        """ Like str.split, but accept several separators and regexes
 
+            Args:
+                separators: strings you can split on. Each string can be a
+                            regex.
+                maxsplit: max number of time you wish to split. default is 0,
+                          which means no limit.
+                flags: flags you wish to pass if you use regexes. You should
+                       pass them as a string containing a combination of:
+
+                        - 'm' for re.MULTILINE
+                        - 'x' for re.VERBOSE
+                        - 'v' for re.VERBOSE
+                        - 's' for re.DOTALL
+                        - '.' for re.DOTALL
+                        - 'd' for re.DEBUG
+                        - 'i' for re.IGNORECASE
+                        - 'u' for re.UNICODE
+                        - 'l' for re.LOCALE
+
+            Example:
+
+                >>> string = s('fat     black cat, big bad dog')
+                >>> string.split().list()
+                ['fat', 'black', 'cat,', 'big', 'bad', 'dog']
+        """
         # TODO, when separator is empty, make it split on non printable
         # caracters
 
         if not separators:
-            return self.__class__(unicode.split(self))
+            return g(unicode.split(self))
 
         for sep in separators:
             if not isinstance(sep, basestring):
@@ -126,6 +250,7 @@ class StringWrapper(with_metaclass(MetaS, unicode)):  # type: ignore
                 """.format(sep=sep, sep_type=type(sep))
                 raise TypeError(msg)
 
+        # TODO: split let many spaces. Fix it.
         return g(self._split(separators, kwargs.get('maxsplit', 0),
                              self._parse_flags(kwargs.get('flags', 0))))
 
@@ -134,6 +259,7 @@ class StringWrapper(with_metaclass(MetaS, unicode)):  # type: ignore
             sep = separators[0]
             # TODO: find a better error message
 
+            # TODO: maxsplit is buggy, fix it
             for chunk in re.split(sep, self, maxsplit, flags):
                 for item in self.__class__(chunk)._split(separators[1:],
                                            maxsplit=0, flags=0):
@@ -166,6 +292,15 @@ class StringWrapper(with_metaclass(MetaS, unicode)):  # type: ignore
     def dedent(self):
         return self.__class__(dedent(self))
 
+    def upper(self):
+        return self.__class__(unicode.upper(self))
+
+    def __getitem__(self, index):
+        return self.__class__(unicode.__getitem__(self, index))
+
+    def __add__(self, other):
+        return self.__class__('{}{}').format(self, other)
+
     def join(self, iterable, formatter=lambda s, t: t.format(s),
              template="{}"):
         formatted_iterable = (formatter(st, template) for st in iterable)
@@ -192,7 +327,8 @@ class StringWrapper(with_metaclass(MetaS, unicode)):  # type: ignore
             return self.__class__(unicode.format(self, **pframe.f_locals))
         return self.__class__(unicode.format(self, *args, **kwargs))
 
-    def to_bool(self, val, default=None):
+
+    def to_bool(self, default=None):
         try:
             return {
                 '1': True,
@@ -204,7 +340,7 @@ class StringWrapper(with_metaclass(MetaS, unicode)):  # type: ignore
                 'yes': True,
                 'no': False,
                 '': False
-            }[val.casefold()]
+            }[self.casefold()]
         except KeyError:
             if default is not None:
                 return default
@@ -213,6 +349,9 @@ class StringWrapper(with_metaclass(MetaS, unicode)):  # type: ignore
                              your input or set the 'default' parameter to True
                              or False.
                              """)
+    if six.PY3:  # we want unified representation between versions
+        def __repr__(self):
+            return 'u{}'.format(super(StringWrapper, self).__repr__())
 
 # shortcut from StringWrapper
 s = StringWrapper
@@ -225,4 +364,5 @@ class f(with_metaclass(MetaF)):  # type: ignore
         caller_frame = inspect.currentframe().f_back
         caller_globals = caller_frame.f_globals
         caller_locals = caller_frame.f_locals
-        return s(FORMATTER.format(string, caller_globals, caller_locals))
+        return StringWrapper(FORMATTER.format(string, caller_globals,
+                                              caller_locals))

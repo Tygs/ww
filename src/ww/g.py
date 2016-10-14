@@ -60,7 +60,6 @@ class IterableWrapper:
             iterable: iterable to use for the iner state.
             *args: other iterable to concatenate to the first one.
 
-
         Example:
 
             >>> g(range(3)).list()
