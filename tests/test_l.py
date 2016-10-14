@@ -1,5 +1,3 @@
-
-
 from ww import l
 
 
@@ -9,13 +7,15 @@ def test_len():
 
     assert lst.len == 3
 
+
 def test_join():
-    
+
     lst = l("012")
     assert lst.join(',', template="{}#") == "0#,1#,2#"
     assert lst.join(',') == "0,1,2"
     string = lst.join(',', formatter=lambda x, y: str(int(x) ** 2))
     assert string == "0,1,4"
+
 
 def test_append():
 
