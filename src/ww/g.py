@@ -17,7 +17,9 @@
 # https://docs.python.org/3/library/itertools.html#itertools-recipes
 # TODO: allow s >> allow you to wrap a string AND dedent it automatically
 
-from __future__ import (unicode_literals, absolute_import,
+# WARNING: do not import unicode_literals, as it makes docstrings containins
+# strings fail on python2
+from __future__ import (absolute_import,
                         division, print_function)
 
 try:
@@ -74,12 +76,12 @@ class IterableWrapper:
         self._tee_called = False
 
     def __iter__(self):
-        """Return the inner iterable.
+        """Return the inner iterator
 
             Example:
 
             >>> gen = g(range(10))
-            >>> iter(gen) == gen.iterable
+            >>> iter(gen) == gen.iterator
             True
         """
         if self._tee_called:
@@ -206,7 +208,7 @@ class IterableWrapper:
 
         Example:
 
-            >>> list(tuple(x) for x in g(range(3)).clone(3))
+            >>> list(tuple(x) for x in g(range(3)).tee(3))
             [(0, 1, 2), (0, 1, 2), (0, 1, 2)]
         """
         gen = g(g(x) for x in tee(self, num))
@@ -253,7 +255,7 @@ class IterableWrapper:
             >>> g(range(100))[::-1]
             Traceback (most recent call last):
             ...
-            ValueError: The step can not be negative: -1 given
+            ValueError: The step can not be negative: '-1' given
         """
 
         if isinstance(index, int):

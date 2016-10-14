@@ -22,13 +22,16 @@ def starts_when(iterable, condition):
 
     Example:
 
-        >>> g(range(10)).starts(lambda x: x > 5).list()
+        >>> list(starts_when(range(10), lambda x: x > 5))
         [6, 7, 8, 9]
-        >>> g(range(10)).starts(7).list()
+        >>> list(starts_when(range(10), 7))
         [7, 8, 9]
     """
     if not callable(condition):
-        raise ValueError("Expecting a callable, not '{}'".format(condition))
+        cond_value = condition
+
+        def condition(x):
+            return x == cond_value
     return itertools.dropwhile(lambda x: not condition(x), iterable)
 
 
@@ -43,17 +46,20 @@ def stops_when(iterable, condition):
 
     Example:
 
-        >>> g(range(10)).stops(lambda x: x > 5).list()
+        >>> list(stops_when(range(10), lambda x: x > 5))
         [0, 1, 2, 3, 4, 5]
-        >>> g(range(10)).stops(7).list()
+        >>> list(stops_when(range(10), 7))
         [0, 1, 2, 3, 4, 5, 6]
     """
     if not callable(condition):
-        raise ValueError("Expecting a callable, not '{}'".format(condition))
+        cond_value = condition
+
+        def condition(x):
+            return x == cond_value
     return itertools.takewhile(lambda x: not condition(x), iterable)
 
 
-def skip_duplicates(iterable, key, fingerprints=()):
+def skip_duplicates(iterable, key=None, fingerprints=()):
     # type: (Iterable, Iterable, Any) -> Iterable
     """
         Returns a generator that will yield all objects from iterable, skipping
@@ -100,7 +106,7 @@ def skip_duplicates(iterable, key, fingerprints=()):
             ...
             >>> list(skip_duplicates([Test(), Test(), Test('other')]))
             [Test('bar'), Test('bar'), Test('other')]
-            >>> list(skip_duplicates([Test(), Test(), Test('other')],
+            >>> list(skip_duplicates([Test(), Test(), Test('other')],\
                                      lambda x: x.foo))
             [Test('bar'), Test('other')]
 

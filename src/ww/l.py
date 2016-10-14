@@ -9,8 +9,8 @@ class l(list):
 
         Example:
 
-            >>> list = [0, 1, 2, 3]
-            >>> list.len
+            >>> lst = l([0, 1, 2, 3])
+            >>> lst.len
             4
         """
 
@@ -32,9 +32,11 @@ class l(list):
 
             >>> lst = l([])
             >>> lst.append(1)
+            [1]
             >>> lst
             [1]
             >>> lst.append(2, 3).append(4,5)
+            [1, 2, 3, 4, 5]
             >>> lst
             [1, 2, 3, 4, 5]
         """
@@ -54,9 +56,11 @@ class l(list):
 
             >>> lst = l([])
             >>> lst.extend([1, 2])
+            [1, 2]
             >>> lst
             [1, 2]
             >>> lst.extend([3, 4]).extend([5, 6])
+            [1, 2, 3, 4, 5, 6]
             >>> lst
             [1, 2, 3, 4, 5, 6]
         """
