@@ -1,8 +1,15 @@
-# TODO: delete(keys)
+# coding: utf-8
+import ww
+
+try:
+    from typing import Iterable, Any, Union, Callable  # noqa
+except ImportError:
+    pass
 
 
 class DictWrapper(dict):
     def isubset(self, *keys):
+        # type: (*Iterable) -> ww.g
         """Return key, self[key] as generator for key in keys.
 
         Raise KeyError if a key does not exist
@@ -15,10 +22,14 @@ class DictWrapper(dict):
             >>> list(d({1:1, 2:2, 3:3}).isubset(1,3))
             [(1, 1), (3, 3)]
         """
-        for key in keys:
-            yield key, self[key]
+        def _():
+            for key in keys:
+                yield key, self[key]
+
+        return ww.g(_())
 
     def subset(self, *keys):
+        # type: (*Iterable) -> DictWrapper
         """Return d(key, self[key]) for key in keys.
 
         Raise KeyError if a key does not exist
@@ -34,6 +45,7 @@ class DictWrapper(dict):
         return d(self.isubset(*keys))
 
     def swap(self):
+        # type: () -> DictWrapper
         """Swap key and value
 
         /!\ Be carreful, if there are duplicate values, only one will
@@ -47,6 +59,7 @@ class DictWrapper(dict):
         return d((v, k) for k, v in self.items())
 
     def add(self, key, value):
+        # type: (Any, Any) -> DictWrapper
         """Add value in key
 
         Args:
@@ -63,34 +76,49 @@ class DictWrapper(dict):
         return self
 
     def __iter__(self):
-        for key, value in self.items():
-            yield key, value
+        """Return the inner iterator
+
+        Returns: iterator
+
+        """
+
+        def _():
+            for key, value in self.items():
+                yield key, value
+
+        return iter(ww.g(_()))
 
     @classmethod
-    def fromkeys(cls, *keys, **kwargs):
+    def fromkeys(cls, iterable, value=None):
+        # TODO : type: (Iterable, Union[Any, Callable]) -> DictWrapper
+        # https://github.com/python/mypy/issues/2254
         """Create a new d from
 
         Args:
-            *keys: Iterable containing keys
+            iterable: Iterable containing keys
+            value: value to associate with each key.
+            If callable, will be value[key]
 
-        Returns: d
+        Returns: new DictWrapper
 
         Example:
 
-            >>> sorted(d.fromkeys(*'123', value=4).items())
+            >>> sorted(d.fromkeys('123', value=4).items())
             [('1', 4), ('2', 4), ('3', 4)]
+            >>> sorted(d.fromkeys(range(3), value=lambda e:e**2).items())
+            [(0, 0), (1, 1), (2, 4)]
         """
-        value = kwargs.get('value', None)
         if not callable(value):
-            return d(super(d, cls).fromkeys(keys, value))
+            return d(super(d, cls).fromkeys(iterable, value))
 
-        def gen():
-            for key in keys:
+        def _():
+            for key in iterable:
                 yield key, value(key)
 
-        return d(gen())
+        return d(_())
 
     def merge(self, other_dict):
+        # type: (Union[DictWrapper, Dict]) -> DictWrapper
         """Merge self with other_dict
 
         Args:
@@ -109,6 +137,7 @@ class DictWrapper(dict):
         return self
 
     def delete(self, *keys):
+        # type: (*Iterable) -> DictWrapper
         """Delete keys from dict
 
         Args:
@@ -127,6 +156,7 @@ class DictWrapper(dict):
         return self
 
     def __add__(self, other):
+        # type: (Union[DictWrapper, Dict]) -> DictWrapper
         """Add other in self and return new dict
 
         Args:
@@ -145,6 +175,7 @@ class DictWrapper(dict):
         return copy.merge(other)
 
     def __radd__(self, other):
+        # type: (Union[DictWrapper, Dict]) -> DictWrapper
         """Add other in self, and return new dict
 
         Args:
@@ -162,8 +193,8 @@ class DictWrapper(dict):
         copy = d(other.copy())
         return copy.merge(self)
 
-
     def __iadd__(self, other):
+        # type: (Union[DictWrapper, Dict]) -> DictWrapper
         """Add other in self
 
         Args:
@@ -175,8 +206,10 @@ class DictWrapper(dict):
 
             >>> current_dict = d({1: 1, 2: 2, 3: 3})
             >>> current_dict += {5: 6, 6: 7}
+            >>> current_dict
             {1: 1, 2: 2, 3: 3, 5: 6, 6: 7}
         """
         return self.merge(other)
 
-d=DictWrapper
+
+d = DictWrapper

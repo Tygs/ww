@@ -1,6 +1,7 @@
 import math
 import pytest
 
+import ww
 from ww import d
 
 
@@ -28,11 +29,11 @@ def test_radd():
 
 def test_isubset():
     curr_dict = d({1: 'abcd', 2: "azr"})
-    g = curr_dict.isubset(1, 2)
+    g = curr_dict.isubset(1, 2).iterator
     assert next(g) == (1, 'abcd')
     assert next(g) == (2, 'azr')
     with pytest.raises(StopIteration):
-        list(next(g))
+        print(next(g))
 
 
 def test_isubset_unexisting_key():
@@ -91,7 +92,7 @@ def test_iterator():
 
 
 def test_from_key_val():
-    curr_dict = d.fromkeys(*'123', value=4)
+    curr_dict = d.fromkeys('123', value=4)
     assert len(curr_dict) == 3
     assert curr_dict['1'] == 4
     assert curr_dict['2'] == 4
@@ -99,7 +100,7 @@ def test_from_key_val():
 
 
 def test_from_key_lambda():
-    curr_dict = d.fromkeys(*range(3), value=lambda v: v ** 2)
+    curr_dict = d.fromkeys(range(3), value=lambda v: v ** 2)
     assert len(curr_dict) == 3
     assert curr_dict[0] == 0
     assert curr_dict[1] == 1
@@ -107,7 +108,7 @@ def test_from_key_lambda():
 
 
 def test_from_key_call():
-    curr_dict = d.fromkeys(*range(3), value=math.sqrt)
+    curr_dict = d.fromkeys(range(3), value=math.sqrt)
     assert len(curr_dict) == 3
     for i in range(3):
         assert curr_dict[i] == math.sqrt(i)
@@ -132,7 +133,6 @@ def test_delete():
 def test_iadd():
     current_dict = d({1: 1, 2: 2, 3: 3})
     current_dict += {5: 6, 6: 7}
-    print(current_dict)
     assert len(current_dict) == 5
     assert current_dict[5] == 6
     assert current_dict[6] == 7
