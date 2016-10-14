@@ -57,7 +57,7 @@ class d(dict):
 
             >>> current_dict = d({1:1, 2:2, 3:3})
             >>> current_dict.add(4,5)
-            {1:1, 2:2, 3:3, 4:5}
+            {1: 1, 2: 2, 3: 3, 4: 5}
         """
         self[key] = value
         return self
@@ -77,8 +77,8 @@ class d(dict):
 
         Example:
 
-            >>> d.fromkeys(*'123', value=4)
-            {'3': 4, '1': 4, '2': 4}
+            >>> sorted(d.fromkeys(*'123', value=4).items())
+            [('1', 4), ('2', 4), ('3', 4)]
         """
         value = kwargs.get('value', None)
         if not callable(value):
@@ -103,7 +103,7 @@ class d(dict):
             >>> current_dict = d({1:1, 2:2, 3:3})
             >>> to_merge_dict = d({3:4, 4:5})
             >>> current_dict.merge(to_merge_dict)
-            {1:1, 2:2, 3:4, 4:5}
+            {1: 1, 2: 2, 3: 4, 4: 5}
         """
         self.update(other_dict)
         return self
