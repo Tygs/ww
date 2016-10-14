@@ -1,2 +1,3 @@
 chardet
 formatizer
+future

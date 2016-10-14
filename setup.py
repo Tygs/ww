@@ -37,29 +37,31 @@ def get_requirements(path):
 requirements, dep_links = get_requirements('requirements.txt')
 dev_requirements, dev_dep_links = get_requirements('dev-requirements.txt')
 
-setuptools.setup(name='ww',
-                 version=get_version(),
-                 description="Wrappers for Python builtins with higher-level APIs",
-                 long_description=open('README.rst').read().strip(),
-                 author="Sam et Max",
-                 author_email="lesametlemax@gmail.com",
-                 url='https://github.com/sametmax/ww/',
-                 packages=setuptools.find_packages('src'),
-                 package_dir={'': 'src'},
-                 install_requires=requirements,
-                 extras_require={
-                     'dev': dev_requirements
-                 },
-                 setup_requires=['pytest-runner'],
-                 tests_require=dev_requirements,
-                 include_package_data=True,
-                 license='WTFPL',
-                 zip_safe=False,
-                 keywords='ww',
-                 classifiers=['Development Status :: 1 - Planning',
-                              'Intended Audience :: Developers',
-                              'Natural Language :: English',
-                              'Programming Language :: Python :: 3.5',
-                              'Programming Language :: Python :: 3 :: Only',
-                              'Management',
-                              'Operating System :: OS Independent'],)
+setuptools.setup(
+    name='ww',
+    version=get_version(),
+    description="Wrappers for Python builtins with higher-level APIs",
+    long_description=open('README.rst').read().strip(),
+    author="Sam et Max",
+    author_email="lesametlemax@gmail.com",
+    url='https://github.com/tygs/ww/',
+    packages=setuptools.find_packages('src'),
+    package_dir={'': 'src'},
+    install_requires=requirements,
+    extras_require={
+        'dev': dev_requirements
+    },
+    setup_requires=['pytest-runner'],
+    tests_require=dev_requirements,
+    include_package_data=True,
+    license='MIT',
+    zip_safe=False,
+    keywords='ww',
+    classifiers=['Development Status :: 1 - Planning',
+                 'Intended Audience :: Developers',
+                 'Natural Language :: English',
+                 'Programming Language :: Python :: 2',
+                 'Programming Language :: Python :: 3',
+                 'Management',
+                 'Operating System :: OS Independent'],
+)

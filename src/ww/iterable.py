@@ -1,8 +1,10 @@
 
 import itertools
 
+from future.utils import raise_from
+
 try:
-    from typing import Union, Callable, Iterable, Any
+    from typing import Union, Callable, Iterable, Any  # noqa
 except ImportError:
     pass
 
@@ -10,7 +12,7 @@ from collections import deque
 
 
 def starts_when(iterable, condition):
-    # type: (Iterable, Union[Callable, Any])
+    # type: (Iterable, Union[Callable, Any]) -> Iterable
     """Start yielding items when a condition arise.
 
     Args:
@@ -31,7 +33,7 @@ def starts_when(iterable, condition):
 
 
 def stops_when(iterable, condition):
-    # type: (Iterable, Union[Callable, Any])
+    # type: (Iterable, Union[Callable, Any]) -> Iterable
     """Stop yielding items when a condition arise.
 
     Args:
@@ -52,7 +54,7 @@ def stops_when(iterable, condition):
 
 
 def skip_duplicates(iterable, key, fingerprints=()):
-    # type: (Iterable, Iterable, Any)
+    # type: (Iterable, Iterable, Any) -> Iterable
     """
         Returns a generator that will yield all objects from iterable, skipping
         duplicates.
@@ -77,9 +79,11 @@ def skip_duplicates(iterable, key, fingerprints=()):
 
         :Example:
 
-            >>> list(skip_duplicates(([], [], (), [1, 2], (1, 2)), lambda x: tuple(x)))
+            >>> list(skip_duplicates(([], [], (), [1, 2], (1, 2)),
+            ...                      lambda x: tuple(x)))
             [[], [1, 2]]
-            >>> list(skip_duplicates(([], [], (), [1, 2], (1, 2)), lambda x: (type(x), tuple(x))))
+            >>> list(skip_duplicates(([], [], (), [1, 2], (1, 2)),
+            ...                      lambda x: (type(x), tuple(x))))
             [[], (), [1, 2], (1, 2)]
 
         For more complex types, such as custom classes, the default behavior
@@ -96,7 +100,8 @@ def skip_duplicates(iterable, key, fingerprints=()):
             ...
             >>> list(skip_duplicates([Test(), Test(), Test('other')]))
             [Test('bar'), Test('bar'), Test('other')]
-            >>> list(skip_duplicates([Test(), Test(), Test('other')], lambda x: x.foo))
+            >>> list(skip_duplicates([Test(), Test(), Test('other')],
+                                     lambda x: x.foo))
             [Test('bar'), Test('other')]
 
     """
@@ -129,9 +134,10 @@ def skip_duplicates(iterable, key, fingerprints=()):
         else:
             raise
 
+
 # TODO: test that on big iterators to check for recursion limit
 def chunks(iterable, chunksize, cast=tuple):
-    # type: (Iterable, int, Callable)
+    # type: (Iterable, int, Callable) -> Iterable
     """
         Yields items from an iterator in iterable chunks.
     """
@@ -142,7 +148,7 @@ def chunks(iterable, chunksize, cast=tuple):
 
 
 def window(iterable, size=2, cast=tuple):
-    # type: (Iterable, int, Callable)
+    # type: (Iterable, int, Callable) -> Iterable
     """
         Yields iterms by bunch of a given size, but rolling only one item
         in and out at a time when iterating.
@@ -178,8 +184,8 @@ def window(iterable, size=2, cast=tuple):
             yield d
 
 
-def at_index(iterable: Iterable, index: int):
-    # type: (Iterable, int)
+def at_index(iterable, index):
+    # type: (Iterable, int) -> Iterable
     """" Return the item at the index of this iterable or raises IndexError.
 
         WARNING: this will consume generators.
@@ -193,11 +199,11 @@ def at_index(iterable: Iterable, index: int):
 
         return next(itertools.islice(iterable, index, index + 1))
     except (StopIteration, IndexError) as e:
-        raise IndexError('Index "%d" out of range' % index) from e
+        raise_from(IndexError('Index "%d" out of range' % index), e)
 
 
 def first_true(iterable, func):
-    # type: (Iterable, int)
+    # type: (Iterable, int) -> Any
     """" Return the first item of the iterable for which func(item) == True.
 
         Or raises IndexError.
@@ -207,11 +213,11 @@ def first_true(iterable, func):
     try:
         return next((x for x in iterable if func(x)))
     except StopIteration as e:
-        raise IndexError('No match for %s' % func) from e
+        raise_from(IndexError('No match for %s' % func), e)
 
 
 def iterslice(iterable, start=0, stop=None, step=1):
-    # type: (Iterable, int, int, int)
+    # type: (Iterable, int, int, int) -> Iterable
     """ Like itertools.islice, but accept int and callables.
 
         If `start` is a callable, start the slice after the first time
@@ -242,14 +248,14 @@ def iterslice(iterable, start=0, stop=None, step=1):
 
 
 def groupby(iterable, keyfunc=None, reverse=False, cast=tuple):
-    # type: (Iterable, Callable, bool, Callable)
+    # type: (Iterable, Callable, bool, Callable) -> Iterable
     sorted_iterable = sorted(iterable, key=keyfunc, reverse=reverse)
     for key, group in itertools.groupby(sorted_iterable, keyfunc):
         yield key, cast(group)
 
 
 def firsts(iterable, items=1, default=None):
-    # type: (Iterable, int, Any)
+    # type: (Iterable, int, Any) -> Iterable
     """ Lazily return the first x items from this iterable or default. """
 
     try:
@@ -266,7 +272,7 @@ def firsts(iterable, items=1, default=None):
 
 
 def lasts(iterable, items=1, default=None):
-    # type: (Iterable, int, Any)
+    # type: (Iterable, int, Any) -> Iterable
     """ Lazily return the last x items from this iterable or default. """
 
     last_items = deque(iterable, maxlen=items)
