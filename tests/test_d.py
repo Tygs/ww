@@ -1,7 +1,6 @@
 import math
 import pytest
 
-import ww
 from ww import d
 
 
