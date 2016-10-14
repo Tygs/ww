@@ -1,9 +1,9 @@
 # coding: utf-8
 
-from __future__ import (unicode_literals, absolute_import,
+from __future__ import (absolute_import,
                         division, print_function)
 
-
+import six
 # TODO : make a s object for strings with split(regex|iterable),
 # replace(regex|iterable)
 # TODO : flags can be passed as strings. Ex: s.search('regex', flags='ig')
@@ -207,6 +207,9 @@ class StringWrapper(with_metaclass(MetaS, unicode)):
                              your input or set the 'default' parameter to True
                              or False.
                              """)
+    if six.PY3:  # we want unified representation between versions
+        def __repr__(self):
+            return 'u{}'.format(super(StringWrapper, self).__repr__())
 
 # shortcut from StringWrapper
 s = StringWrapper
