@@ -24,13 +24,13 @@ class l(list):
 
             >>> lst = l('012')
             >>> lst.join(',')
-            '0,1,2'
+            u'0,1,2'
             >>> lst.join(',', template="{}#")
-            '0#,1#,2#'
+            u'0#,1#,2#'
             >>> string = lst.join(',',\
                                   formatter = lambda x, y: str(int(x) ** 2))
             >>> string
-            '0,1,4'
+            u'0,1,4'
         """
 
         return s(joiner).join(self, formatter, template)
