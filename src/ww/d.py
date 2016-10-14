@@ -1,4 +1,4 @@
-# TODO: delete(keys)
+# TODO: pretty print method
 
 
 class d(dict):
