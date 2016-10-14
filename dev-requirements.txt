@@ -1,5 +1,5 @@
 coverage
-pytest
+py.test
 pytest-cov
 flake8
 tox
