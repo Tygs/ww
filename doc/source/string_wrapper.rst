@@ -1,8 +1,8 @@
 Add features to strings with s()
 =================================
 
-.. automodule:: ww.string_wrapper
+.. automodule:: ww.wrappers.strings
 
-.. autoclass:: ww.string_wrapper.StringWrapper
+.. autoclass:: ww.wrappers.strings.StringWrapper
    :members:
    :special-members:
