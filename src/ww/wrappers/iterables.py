@@ -37,8 +37,8 @@ except ImportError:
 
 import ww  # absolute import to avoid some circular references
 
-from ww.iterable import (at_index, iterslice, first_true, skip_duplicates,
-                         chunks, window, firsts, lasts)
+from ww.tools.iterables import (at_index, iterslice, first_true,
+                                skip_duplicates, chunks, window, firsts, lasts)
 from ww.utils import ensure_tuple
 
 # todo : merge https://toolz.readthedocs.org/en/latest/api.html
@@ -62,6 +62,7 @@ class IterableWrapper:
 
         Example:
 
+            >>> from ww import g
             >>> g(range(3)).list()
             [0, 1, 2]
             >>> g(range(3), "abc").list()
@@ -78,6 +79,7 @@ class IterableWrapper:
 
             Example:
 
+            >>> from ww import g
             >>> gen = g(range(10))
             >>> iter(gen) == gen.iterator
             True
@@ -97,6 +99,7 @@ class IterableWrapper:
 
         Example:
 
+            >>> from ww import g
             >>> g(range(10)).next()
             0
             >>> g(range(0)).next("foo")
@@ -117,10 +120,11 @@ class IterableWrapper:
 
         Example:
 
+            >>> from ww import g
             >>> list(g(range(3)) + "abc")
             [0, 1, 2, 'a', 'b', 'c']
         """
-        return g(itertools.chain(self.iterator, other))
+        return self.__class__(itertools.chain(self.iterator, other))
 
     def __radd__(self, other):
         # type: (Iterable) -> IterableWrapper
@@ -133,10 +137,11 @@ class IterableWrapper:
 
         Example:
 
+            >>> from ww import g
             >>> list("abc" + g(range(3)))
             ['a', 'b', 'c', 0, 1, 2]
         """
-        return g(itertools.chain(other, self.iterator))
+        return self.__class__(itertools.chain(other, self.iterator))
 
     # TODO: allow non iterables
     def __sub__(self, other):
@@ -153,11 +158,12 @@ class IterableWrapper:
 
         Example:
 
+            >>> from ww import g
             >>> list(g(range(6)) - [1, 2, 3])
             [0, 4, 5]
         """
         filter_from = set(ensure_tuple(other))
-        return g(x for x in self.iterator if x not in filter_from)
+        return self.__class__(x for x in self.iterator if x not in filter_from)
 
     def __rsub__(self, other):
         # type: (Iterable) -> IterableWrapper
@@ -170,11 +176,12 @@ class IterableWrapper:
 
         Example:
 
+            >>> from ww import g
             >>> list("abc" + g(range(3)))
             ['a', 'b', 'c', 0, 1, 2]
         """
         filter_from = set(self.iterator)
-        return g(x for x in other if x not in filter_from)
+        return self.__class__(x for x in other if x not in filter_from)
 
     def __mul__(self, num):
         # type: (int) -> IterableWrapper
@@ -185,12 +192,14 @@ class IterableWrapper:
 
         Example:
 
+            >>> from ww import g
             >>> list(g(range(3)) * 3)
             [0, 1, 2, 0, 1, 2, 0, 1, 2]
             >>> list(2 * g(range(3)))
             [0, 1, 2, 0, 1, 2]
         """
-        return g(itertools.chain(*itertools.tee(self.iterator, num)))
+        clones = itertools.tee(self.iterator, num)
+        return self.__class__(itertools.chain(*clones))
 
     __rmul__ = __mul__
 
@@ -205,10 +214,12 @@ class IterableWrapper:
 
         Example:
 
+            >>> from ww import g
             >>> list(tuple(x) for x in g(range(3)).tee(3))
             [(0, 1, 2), (0, 1, 2), (0, 1, 2)]
         """
-        gen = g(g(x) for x in itertools.tee(self.iterator, num))
+        cls = self.__class__
+        gen = cls(cls(x) for x in itertools.tee(self.iterator, num))
         self._tee_called = True
         return gen
 
@@ -235,6 +246,7 @@ class IterableWrapper:
 
         Example:
 
+            >>> from ww import g
             >>> g(range(3))[1]
             1
             >>> g(range(3))[4]
@@ -268,7 +280,7 @@ class IterableWrapper:
         except AttributeError:
             raise ValueError('Indexing works only with integers or callables')
 
-        return g(iterslice(self.iterator, start, stop, step))
+        return self.__class__(iterslice(self.iterator, start, stop, step))
 
     def map(self, func):
         # type: (Callable) -> IterableWrapper
@@ -279,11 +291,12 @@ class IterableWrapper:
 
         Example:
 
+            >>> from ww import g
             >>> g(range(3)).map(str).list()
             ['0', '1', '2']
 
         """
-        return g(imap(func, self.iterator))
+        return self.__class__(imap(func, self.iterator))
 
     def zip(self, *others):
         # type: (*Iterable) -> IterableWrapper
@@ -293,25 +306,26 @@ class IterableWrapper:
             others: the iterables to pass to zip()
 
         """
-        return g(izip(self.iterator, *others))
+        return self.__class__(izip(self.iterator, *others))
 
     def cycle(self):
-        return g(itertools.cycle(self.iterator))
+        return self.__class__(itertools.cycle(self.iterator))
 
     def sorted(self, keyfunc=None, reverse=False):
         # type: (Callable, bool) -> IterableWrapper
         # using __builtins__ to avoid shadowing
-        return g(__builtins__.sorted(self.iterator, key=keyfunc,
-                                     reverse=reverse))
+        return self.__class__(__builtins__.sorted(self.iterator, key=keyfunc,
+                                                  reverse=reverse))
 
     def groupby(self, keyfunc=None, reverse=False, cast=tuple):
         # type: (Callable, bool, Callable) -> IterableWrapper
         # full name to avoid shadowing
-        return g(ww.iterable.groupby(self.iterator, keyfunc, reverse, cast))
+        gen = ww.tools.iterables.groupby(self.iterator, keyfunc, reverse, cast)
+        return self.__class__(gen)
 
     def enumerate(self, start):
         # type: (int) -> IterableWrapper
-        return g(enumerate(self.iterator, start))
+        return self.__class__(enumerate(self.iterator, start))
 
     def count(self):
         try:
@@ -323,7 +337,7 @@ class IterableWrapper:
 
     def copy(self):
         self.iterator, new = itertools.tee(self.iterator)
-        return g(new)
+        return self.__class__(new)
 
     def join(self, joiner, formatter=lambda s, t: t.format(s), template="{}"):
         # type: (Iterable, Callable, str) -> ww.s.StringWrapper
@@ -338,7 +352,7 @@ class IterableWrapper:
         """
             Yields items from an iterator in iterable chunks.
         """
-        return g(chunks(self.iterator, chunksize, cast))
+        return self.__class__(chunks(self.iterator, chunksize, cast))
 
     def window(self, size=2, cast=tuple):
         # type: (int, Callable) -> IterableWrapper
@@ -346,24 +360,25 @@ class IterableWrapper:
         Yields iterms by bunch of a given size, but rolling only one item
         in and out at a time when iterating.
         """
-        return g(window(self.iterator, size, cast))
+        return self.__class__(window(self.iterator, size, cast))
 
     def firsts(self, items=1, default=None):
         # type: (int, Any) -> IterableWrapper
         """ Lazily return the first x items from this iterable or default. """
-        return g(firsts(self.iterator, items, default))
+        return self.__class__(firsts(self.iterator, items, default))
 
     def lasts(self, items=1, default=None):
         # type: (int, Any) -> IterableWrapper
         """ Lazily return the lasts x items from this iterable or default. """
-        return g(lasts(self.iterator, items, default))
+        return self.__class__(lasts(self.iterator, items, default))
 
     # allow using a bloom filter as an alternative to set
     # https://github.com/jaybaird/python-bloomfilter
     # TODO : find a way to say "any type accepting 'in'"
     def skip_duplicates(self, key=lambda x: x, fingerprints=None):
         # type: (Callable, Any) -> IterableWrapper
-        return g(skip_duplicates(self.iterator, key, fingerprints))
+        uniques = skip_duplicates(self.iterator, key, fingerprints)
+        return self.__class__(uniques)
 
     # DO NOT MOVE THOSE METHODS UPPER as they would shadow the builtins inside
     def list(self):
@@ -376,6 +391,3 @@ class IterableWrapper:
 
     def set(self):
         return set(self.iterator)
-
-# expose IterableWrapper the shortcut "g"
-g = IterableWrapper

@@ -2,11 +2,11 @@
 
 __version__ = "0.1.0"
 
-from .g import g  # noqa
-from .string_wrapper import StringWrapper as s, f  # noqa
-from .l import l  # noqa
-from .t import t  # noqa
-from .d import d  # noqa
+from .wrappers.iterables import IterableWrapper as g  # noqa
+from .wrappers.strings import StringWrapper as s, FStringWrapper as f  # noqa
+from .wrappers.lists import ListWrapper as l  # noqa
+from .wrappers.tuples import TupleWrapper as t  # noqa
+from .wrappers.dicts import DictWrapper as d  # noqa
 
 # TODO: wrapper for datetime
 # TODO: wrapper for path.py

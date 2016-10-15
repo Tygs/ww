@@ -2,7 +2,7 @@ import ww
 
 
 # TODO: allow subclass to chose the string class
-class l(list):
+class ListWrapper(list):
 
     @property
     def len(self):
@@ -10,6 +10,7 @@ class l(list):
 
         Example:
 
+            >>> from ww import l
             >>> lst = l([0, 1, 2, 3])
             >>> lst.len
             4
@@ -23,6 +24,7 @@ class l(list):
 
         Example:
 
+            >>> from ww import l
             >>> lst = l('012')
             >>> lst.join(',')
             u'0,1,2'
@@ -46,6 +48,7 @@ class l(list):
 
         Example:
 
+            >>> from ww import l
             >>> lst = l([])
             >>> lst.append(1)
             [1]
@@ -69,6 +72,7 @@ class l(list):
 
         Example:
 
+            >>> from ww import l
             >>> lst = l([])
             >>> lst.extend([1, 2])
             [1, 2]

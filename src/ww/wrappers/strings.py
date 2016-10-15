@@ -13,7 +13,7 @@
 
         You always have the more explicit import at your disposal::
 
-            >>> from ww.string_wrapper import StringWrapper
+            >>> from ww.wrappers.strings import StringWrapper
 
         `s` is just an alias of StringWrapper, but it's what most people will
         want to use most of the time. Hence it's what we will use in the
@@ -25,7 +25,7 @@
             >>> string
             u'this is a test'
             >>> type(string)
-            <class 'ww.string_wrapper.StringWrapper'>
+            <class 'ww.wrappers.strings.StringWrapper'>
             >>> string.upper() # regular string methods are all there
             u'THIS IS A TEST'
             >>> string[:4] + "foo" # same behaviors you expect from a string
@@ -71,6 +71,7 @@
         Also we hacked something that looks like Python 3.6 f-string, but
         that works in Python 2.7 and 3.3+:
 
+            >>> from ww import f
             >>> a = 1
             >>> f('Sweet, I can print locals: {a}')
             u'Sweet, I can print locals: 1'
@@ -108,10 +109,7 @@ from __future__ import (absolute_import, division, print_function)
 # TODO : add encoding detection, fuzzy_decode() to make the best of shitty
 # decoding, unidecode, slug, etc,
 
-
-# f() for format, if no args are passed, it uses local. Also allow f >> ""
-
-# t() or t >> for a jinja2 template (optional dependency ?)
+# tpl() or tpl >> for a jinja2 template (optional dependency ?)
 # something for translation ?
 
 # TODO: match.__repr__ should show match, groups, groupsdict in summary
@@ -133,8 +131,8 @@ except ImportError:
 from six import with_metaclass
 from past.builtins import basestring
 
-from .g import g
-from .utils import ensure_tuple
+from ww import g  # type: ignore
+from ww.utils import ensure_tuple
 
 # TODO: make sure we copy all methods from str but return s()
 
@@ -318,7 +316,7 @@ class StringWrapper(with_metaclass(MetaF, unicode)):  # type: ignore
     def from_bytes(cls, byte_string, encoding=None, errors='strict'):
         if encoding is None:
             encoding = chardet.detect(byte_string)['encoding']
-            raise ValueError(f >> """
+            raise ValueError(FStringWrapper >> """
                              from_bytes() expects a second argument:
                              'encoding'. If you don't know which encoding,
                              try '{encoding}' or 'utf8'. If it fails and you
@@ -351,7 +349,7 @@ class StringWrapper(with_metaclass(MetaF, unicode)):  # type: ignore
         except KeyError:
             if default is not None:
                 return default
-            raise ValueError(f >> """
+            raise ValueError(FStringWrapper >> """
                              '{vals!r}' cannot be converted to a boolean. Clean
                              your input or set the 'default' parameter to True
                              or False.
@@ -365,7 +363,7 @@ s = StringWrapper
 
 
 # TODO: make sure each class call self._class instead of s(), g(), etc
-class f(with_metaclass(MetaF)):  # type: ignore
+class FStringWrapper(with_metaclass(MetaF)):  # type: ignore
 
     def __new__(cls, string):
         caller_frame = inspect.currentframe().f_back

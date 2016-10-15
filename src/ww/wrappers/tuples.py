@@ -4,7 +4,7 @@
 import ww
 
 
-class t(tuple):
+class TupleWrapper(tuple):
     @property
     def len(self):
         return len(self)
@@ -15,6 +15,7 @@ class t(tuple):
 
         Example:
 
+            >>> from ww import t
             >>> lst = t('012')
             >>> lst.join(',')
             u'0,1,2'
