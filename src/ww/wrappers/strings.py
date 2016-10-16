@@ -129,37 +129,12 @@ except ImportError:
     FORMATTER = str
 
 from six import with_metaclass
-from past.builtins import basestring
 
-from ww import g  # type: ignore
-from ww.utils import ensure_tuple
+import ww  # type: ignore
+from ww.utils import ensure_tuple, unicode
+from ww.tools.strings import multisplit, parse_re_flags
 
 # TODO: make sure we copy all methods from str but return s()
-
-REGEX_FLAGS = {
-    'm': re.MULTILINE,
-    'x': re.VERBOSE,
-    'v': re.VERBOSE,
-    's': re.DOTALL,
-    '.': re.DOTALL,
-    'd': re.DEBUG,
-    'i': re.IGNORECASE,
-    'u': re.UNICODE,
-    'l': re.LOCALE,
-}
-
-try:
-    # Python2 doesn't support re.ASCII flag
-    REGEX_FLAGS['a'] = re.ASCII
-except AttributeError:
-    pass
-
-
-try:
-    unicode = unicode  # type: ignore
-except NameError:
-    unicode = str
-
 
 FORMATTER = LiteralFormatter()
 
@@ -189,90 +164,21 @@ class MetaF(type):
 # TODO: refactor methods to be only wrappers
 #       for functions from a separate module
 # TODO: override capitalize, title, upper, lower, etc
+# TODO: inherit from BaseWrapper
 class StringWrapper(with_metaclass(MetaF, unicode)):  # type: ignore
+
+    # TODO: allow subclasses to choose iterable wrapper classes
 
     # TODO: check for bytes in __new__. Say we don't accept it and recommand
     # to either use u'' in front of the string, from __future__ or
     # s.from_bytes(bytes, encoding)
 
-    def _parse_flags(self, flags):
-        bflags = 0
-        if isinstance(flags, basestring):
-            for flag in flags:
-                bflags |= REGEX_FLAGS[flag]
-
-            return bflags
-
-        return flags
-
-    # kwargs allow compat with 2.7 and 3 since you can't use
+    # kwargs allows compatibilit with 2.7 and 3 since you can't use
     # keyword-only arguments in python 2
-    # TODO: remove empty strings
-    # TODO: wrap output in StringWrapper
     def split(self, *separators, **kwargs):  # type: ignore
-        # type: (*str, int, str) -> list[StringWrapper]
-        """ Like str.split, but accept several separators and regexes
-
-            Args:
-                separators: strings you can split on. Each string can be a
-                            regex.
-                maxsplit: max number of time you wish to split. default is 0,
-                          which means no limit.
-                flags: flags you wish to pass if you use regexes. You should
-                       pass them as a string containing a combination of:
-
-                        - 'm' for re.MULTILINE
-                        - 'x' for re.VERBOSE
-                        - 'v' for re.VERBOSE
-                        - 's' for re.DOTALL
-                        - '.' for re.DOTALL
-                        - 'd' for re.DEBUG
-                        - 'i' for re.IGNORECASE
-                        - 'u' for re.UNICODE
-                        - 'l' for re.LOCALE
-
-            Example:
-
-                >>> string = s('fat     black cat, big bad dog')
-                >>> string.split().list()
-                [u'fat', u'black', u'cat,', u'big', u'bad', u'dog']
-        """
-
-        maxsplit = kwargs.get('maxsplit', 0)  # 0 means "no limit" for re.split
-
-        # no separator means we use the default str.split behavior
-        if not separators:
-            maxsplit = maxsplit or -1  # -1 means "no limit" for unicode.split
-            return g(map(self.__class__, unicode.split(self, None, maxsplit)))
-
-        # Check all separators are strings
-        for sep in separators:
-            if not isinstance(sep, basestring):
-                msg = s >> """
-                    Separators must be strings, not "{sep}" ({sep_type}).
-                    A common cause of this error is to call split([a, b, c])
-                    instead of split(a, b, c) or passing bytes.
-                """.format(sep=sep, sep_type=type(sep))
-                raise TypeError(msg)
-
-        # TODO: split let many spaces. Fix it.
-
-        flags = self._parse_flags(kwargs.get('flags', 0))
-        return g(map(self.__class__, self._split(separators, maxsplit, flags)))
-
-    def _split(self, separators, maxsplit=0, flags=0):
-        try:
-            sep = separators[0]
-            # TODO: find a better error message
-
-            # TODO: maxsplit is buggy, fix it
-            separators = separators[1:]
-            for chunk in re.split(sep, self, maxsplit, flags):
-                chunk = self.__class__(chunk)
-                for item in chunk._split(separators, maxsplit=0, flags=0):
-                    yield item
-        except IndexError:
-            yield self
+        # type: (*str, int, str) -> IteratableWrapper[StringWrapper]
+        chunks = multisplit(self, *separators, **kwargs)
+        return ww.g(chunks).map(self.__class__)
 
     def replace(self, patterns, substitutions, maxreplace=0, flags=0):
 
@@ -288,7 +194,7 @@ class StringWrapper(with_metaclass(MetaF, unicode)):  # type: ignore
                 raise ValueError("You must have exactly one substitution "
                                  "for each pattern or only one substitution")
 
-        flags = self._parse_flags(flags)
+        flags = parse_re_flags(flags)
 
         res = self
         for pattern, sub in zip(patterns, substitutions):

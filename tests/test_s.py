@@ -42,6 +42,14 @@ def test_split():
 
     assert s(r'cAt').split('a', flags=re.I).list() == ['c', 't']
 
+    chunks = s('a,b;c/d=a,b;c/d').split(',', ';', '/', maxsplit=3)
+    assert chunks.list() == ['a', 'b', 'c', 'd=a,b;c/d']
+
+
+def test_maxsplit_with_regex():
+    chunks = s('a,b;c/d=a,b;c/d').split(',', ';', '[/=]', maxsplit=4)
+    assert chunks.list() == ['a', 'b', 'c', 'd', 'a,b;c/d']
+
 
 def test_replace():
 
