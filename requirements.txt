@@ -1,5 +1,4 @@
 chardet
 formatizer
 future
-typing
 six

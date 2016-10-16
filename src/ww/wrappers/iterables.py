@@ -505,15 +505,3 @@ class IterableWrapper(BaseWrapper):
         # type: (Callable, Any) -> IterableWrapper
         uniques = skip_duplicates(self.iterator, key, fingerprints)
         return self.__class__(uniques)
-
-    # DO NOT MOVE THOSE METHODS UPPER as they would shadow the builtins inside
-    def list(self):
-        # TODO: cast to l()
-        return list(self.iterator)
-
-    def tuple(self):
-        # TODO: cast to t()
-        return tuple(self.iterator)
-
-    def set(self):
-        return set(self.iterator)

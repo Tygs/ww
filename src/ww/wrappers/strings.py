@@ -237,20 +237,21 @@ class StringWrapper(with_metaclass(MetaF, unicode)):  # type: ignore
                 >>> string.split().list()
                 [u'fat', u'black', u'cat,', u'big', u'bad', u'dog']
         """
-        # TODO, when separator is empty, make it split on non printable
-        # caracters
 
         maxsplit = kwargs.get('maxsplit', 0)  # 0 means "no limit" for re.split
-        if not separators:  # TODO: pass maxsplit
+
+        # no separator means we use the default str.split behavior
+        if not separators:
             maxsplit = maxsplit or -1  # -1 means "no limit" for unicode.split
             return g(map(self.__class__, unicode.split(self, None, maxsplit)))
 
+        # Check all separators are strings
         for sep in separators:
             if not isinstance(sep, basestring):
                 msg = s >> """
-                    Separators must be string, not "{sep}" ({sep_type}).
+                    Separators must be strings, not "{sep}" ({sep_type}).
                     A common cause of this error is to call split([a, b, c])
-                    instead of split(a, b, c).
+                    instead of split(a, b, c) or passing bytes.
                 """.format(sep=sep, sep_type=type(sep))
                 raise TypeError(msg)
 

@@ -1,2 +1,3 @@
 Introduction
 ============
+.. include:: ../../README.rst
