@@ -240,6 +240,7 @@ class StringWrapper(with_metaclass(MetaF, unicode)):  # type: ignore
             return self.__class__(unicode.format(self, **pframe.f_locals))
         return self.__class__(unicode.format(self, *args, **kwargs))
 
+    # TODO: i18n
     def to_bool(self, default=None):
         try:
             return {
