@@ -158,6 +158,8 @@ except ImportError:
     izip = zip
     ifilter = filter
 
+import builtins
+
 import ww  # absolute import to avoid some circular references
 
 from ww.tools.iterables import (at_index, iterslice, first_true,
@@ -438,10 +440,9 @@ class IterableWrapper(BaseWrapper):
 
     def sorted(self, keyfunc=None, reverse=False):
         # type: (Callable, bool) -> IterableWrapper
-        # using __builtins__ to avoid shadowing
-        sortfunc = __builtins__['sorted']  # type: ignore
-        return self.__class__(sortfunc(self.iterator, key=keyfunc,
-                                       reverse=reverse))
+        # using builtins to avoid shadowing
+        lst = builtins.sorted(self.iterator, key=keyfunc, reverse=reverse)
+        return self.__class__(lst)
 
     def groupby(self, keyfunc=None, reverse=False, cast=tuple):
         # type: (Callable, bool, Callable) -> IterableWrapper

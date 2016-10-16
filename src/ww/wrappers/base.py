@@ -2,31 +2,33 @@
 
 from pprint import pprint
 
+import builtins
+
 import ww
 
 
 class BaseWrapper(object):
 
     def list(self):
-        return __builtins__['list'](self)
+        return builtins.list(self)
 
     def wlist(self):
         return ww.l(self)
 
     def tuple(self):
-        return __builtins__['tuple'](self)
+        return builtins.tuple(self)
 
     def wtuple(self):
         return ww.t(self)
 
     def str(self):
-        return __builtins__['str'](self)
+        return builtins.str(self)
 
     def wstr(self):
         return ww.s(self)
 
     def set(self):
-        return __builtins__['set'](self)
+        return builtins.set(self)
 
     def wset(self):
         return NotImplemented
