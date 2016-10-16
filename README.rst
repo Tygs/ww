@@ -86,22 +86,25 @@ Versions infos
 
 **Compatibility:** CPython 2.7+/3.3+ and the last stable versions of pypy2/3.
 **Platform:** It should be any as the lib is pure Python and is not OS related.
-              But right now we only tested it on GNU/Linux.
+But right now we only tested it on GNU/Linux.
 **Version:** 0.1
 
-.. WARNING::
-   The software is currently in early stage. Only s() and g() are considered
-   well documented and tested, and even them deserve some more love.
-   You'll also meet some empty files for future ideas.
+WARNING
+--------
 
-   We choose to make an early release under the pressing request of colleagues
-   eager to try it but it's not the final product. Quality is on the way.
+The software is currently in early stage. Only s() and g() are considered
+well documented and tested, and even them deserve some more love.
+You'll also meet some empty files for future ideas.
 
-   Also, we WILL break the API until we reach 1.0, from which we'll switch
-   to semver and secure the API.
+We choose to make an early release under the pressing request of colleagues
+eager to try it but it's not the final product. Quality is on the way.
+
+Also, we WILL break the API until we reach 1.0, from which we'll switch
+to semver and secure the API.
+
 
 Development
--------------
+------------
 
 You can offer PR with your contributions to ww. They should include unit tests,
 docstrings, type definitions and a new entry in the documentation.
