@@ -1,21 +1,144 @@
 # coding: utf-8
 
+"""
+    IterableWrapper is a convenient wrapper around all iterables.
+    It works withs strings, lists, tuples, dicts, sets, file-like objects,
+    anything declaring __len__ + __getitem__ or __next__, etc. Basically
+    whatever you can apply a for loop to. And it will behave the same way
+    regarding iteration.
+
+    It does not assume a size, it does not even assumes the iterable is finite.
+
+    When possible IterableWrapper tries to not hold data in memory, but some
+    operations require it, so when in doubt, check the methods doc.
+
+    However, remember that reading some iterables, such as generators,
+    will consume them! Make sure this is what you want.
+
+    In any case, IterableWrapper improves a lot over the API of regular
+    iterable, providing better chaining, adding shorcuts to itertools,
+    allowing slicing and more.
+
+    Example:
+
+        Import::
+
+            >>> from ww import g
+
+        You always have the more explicit import at your disposal::
+
+            >>> from ww.wrappers.iterables import IterableWrapper
+
+        `g` is just an alias of IterableWrapper, but it's what most people will
+        want to use most of the time. Hence it's what we will use in the
+        examples.
+
+        `i` could have been a better alias for "iterable", but `i` is used
+        all the time in Python as a variable name so it would systematically
+        end up shadowed.`g` mnemonic is "generator".
+
+        Basic usages::
+
+            >>> from ww import g
+            >>> gen = g(x * x for x in range(5))
+            >>> gen
+            <IterableWrapper generator>
+            >>> type(gen)
+            <class 'ww.wrappers.iterables.IterableWrapper'>
+            >>> for x in gen: # you can iterate on g as expected
+            ...     print(x)
+            ...
+            0
+            1
+            4
+            9
+            16
+
+        Shortcuts and chaining::
+
+            >>> g("azerty").enumerate().sorted().list()
+            [(0, 'a'), (1, 'z'), (2, 'e'), (3, 'r'), (4, 't'), (5, 'y')]
+            >>> g(range(3)).join(',') # natural join, with autocast to string
+            u'0,1,2'
+
+        Itertools at your fingertips::
+
+            >>> gen = g(x * x for x in range(10))
+            >>> gen.groupby(lambda x: x % 2).list() # autosort and cast groups
+            [(0, (0, 4, 16, 36, 64)), (1, (1, 9, 25, 49, 81))]
+            >>> a, b = g(range(3)).tee(2)
+            >>> a.list()
+            [0, 1, 2]
+            >>> b.list()
+            [0, 1, 2]
+            >>> gen = g(range(2)).cycle()
+            >>> next(gen)
+            0
+            >>> next(gen)
+            1
+            >>> next(gen)
+            0
+            >>> next(gen)
+            1
+
+        Operators to the rescue:
+
+            >>> gen = g(range(3)) + "abc"
+            >>> gen.list()
+            [0, 1, 2, 'a', 'b', 'c']
+            >>> gen = g(range(5)) - [0, 3]
+            >>> gen.list()
+            [1, 2, 4]
+            >>> gen = g(range(3)) * 3
+            >>> gen.list()
+            [0, 1, 2, 0, 1, 2, 0, 1, 2]
+
+        Index all the things!!!
+
+        ::
+
+            >>> gen = g(x * x for x in range(10))
+            >>> gen[3:8].list() # slicing uses itertools.islice
+            [9, 16, 25, 36, 49]
+            >>> gen = g(x * x for x in range(10))
+            >>> gen[3]
+            9
+            >>> # slicing with a callable will start/stop when first True
+            >>> g('aeRty')[lambda x: x.isupper():].list()
+            ['R', 't', 'y']
+
+        Moar features::
+
+            >>> a, b, c = g(range(1)).firsts(3, default="foo")
+            >>> a
+            0
+            >>> b
+            'foo'
+            >>> c
+            'foo'
+            >>> g(range(10)).chunks(3).list()
+            [(0, 1, 2), (3, 4, 5), (6, 7, 8), (9,)]
+            >>> # preserve order, works on unsized containers, has a key func
+            >>> g("azertyazertyazerty").skip_duplicates().list()
+            ['a', 'z', 'e', 'r', 't', 'y']
+
+    There is much, much more...
+
+    Plus, most feature from this module are actually just delegating the work
+    to the ww.tools.iterable module. It contains stand alone functions for
+    most operations you can apply directly on regular collections.
+
+    You may want to use it directly if you wish to not wrap your collections
+    in g().
+
+    You'll find bellow the detailed documentation for each method of
+    IterableWrapper. Go have a look, there is some great stuff here!
+"""
+
 # TODO stuff returning a strings in g() would be an s() object
-# TODO s inherit from str
-# TODO : add encoding detection, fuzzy_decode() to make the best of shitty
-# decoding, unidecode, slug, etc,
-# f() for format, if no args are passed, it uses local
-# TODO: join() autocast to str, with a template you can customize
-# TODO: match.__repr__ should show match, groups, groupsdict in summary
-# TODO : if g() is called on a callable, iter() calls the callable everytime
-# TODO: s.split(sep, maxsplit, minsize, default=None) so "a,b".split(',',
-# minsize=2, default="b") == "a".split(',' minsize=2, default="b")
-# TODO: g() + 1 apply the operation to the whole generator (as for *, / and -)
-# TODO: g(x) + g(y) apply (a + b for a, b in zip(x, y))
-# TODO : gen = gen(y); gen[gen > 5] has the same behavior as numpy array
 # TODO: add features from
+# TODO: get(item, default) that does try g[item] except IndexError: default
 # https://docs.python.org/3/library/itertools.html#itertools-recipes
-# TODO: allow s >> allow you to wrap a string AND dedent it automatically
 
 # WARNING: do not import unicode_literals, as it makes docstrings containins
 # strings fail on python2
@@ -40,6 +163,7 @@ import ww  # absolute import to avoid some circular references
 from ww.tools.iterables import (at_index, iterslice, first_true,
                                 skip_duplicates, chunks, window, firsts, lasts)
 from ww.utils import ensure_tuple
+from .base import BaseWrapper
 
 # todo : merge https://toolz.readthedocs.org/en/latest/api.html
 # toto : merge https://github.com/kachayev/fn.py
@@ -48,7 +172,7 @@ from ww.utils import ensure_tuple
 # TODO: merge minibelt
 
 
-class IterableWrapper:
+class IterableWrapper(BaseWrapper):
 
     def __init__(self, iterable, *args):
         # type: (Iterable, *Iterable) -> None
@@ -215,7 +339,8 @@ class IterableWrapper:
         Example:
 
             >>> from ww import g
-            >>> list(tuple(x) for x in g(range(3)).tee(3))
+            >>> a, b, c = g(range(3)).tee(3)
+            >>> [tuple(a), tuple(b), tuple(c)]
             [(0, 1, 2), (0, 1, 2), (0, 1, 2)]
         """
         cls = self.__class__
@@ -314,8 +439,9 @@ class IterableWrapper:
     def sorted(self, keyfunc=None, reverse=False):
         # type: (Callable, bool) -> IterableWrapper
         # using __builtins__ to avoid shadowing
-        return self.__class__(__builtins__.sorted(self.iterator, key=keyfunc,
-                                                  reverse=reverse))
+        sortfunc = __builtins__['sorted']  # type: ignore
+        return self.__class__(sortfunc(self.iterator, key=keyfunc,
+                                       reverse=reverse))
 
     def groupby(self, keyfunc=None, reverse=False, cast=tuple):
         # type: (Callable, bool, Callable) -> IterableWrapper
@@ -323,7 +449,7 @@ class IterableWrapper:
         gen = ww.tools.iterables.groupby(self.iterator, keyfunc, reverse, cast)
         return self.__class__(gen)
 
-    def enumerate(self, start):
+    def enumerate(self, start=0):
         # type: (int) -> IterableWrapper
         return self.__class__(enumerate(self.iterator, start))
 

@@ -1,8 +1,8 @@
-Add features to strings with s()
-=================================
+Add features to iterables with g()
+=======================================
 
-.. automodule:: ww.iterable_wrapper
+.. automodule:: ww.wrappers.iterables
 
-.. autoclass:: ww.iterable_wrapper.IterableWrapper
+.. autoclass:: ww.wrappers.iterables.IterableWrapper
    :members:
    :special-members:
