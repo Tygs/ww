@@ -1,3 +1,4 @@
+# coding: utf-8
 
 import itertools
 
@@ -5,13 +6,11 @@ from future.utils import raise_from
 
 try:
     from typing import Union, Callable, Iterable, Any, TypeVar   # noqa
+    T = TypeVar('T')
 except ImportError:
     pass
 
 from collections import deque
-
-
-T = TypeVar('T')
 
 
 def starts_when(iterable, condition):
