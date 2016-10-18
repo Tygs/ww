@@ -1,14 +1,32 @@
 # coding: utf-8
 
+"""
+    :doc:`g() </iterable_wrapper>` is very convenient, but it's only a
+    thin wrapper on top of the tools from this module.
+
+    So if you want to apply some of the goodies from it without having to
+    turn your iterables into IterableWrapper objects, you can use the functions
+    from this module directly.
+
+    Example:
+
+        >>> from ww.tools.iterables import chunks  # same as g().chunks()
+        >>> list(chunks(range(10), 3))
+        [(0, 1, 2), (3, 4, 5), (6, 7, 8), (9,)]
+
+    You'll find bellow the detailed documentation for each functions. Remember
+    they all take an iterable as input, and most often ouput a generator.
+
+    Go have a look, there is some great stuff here!
+"""
+
+from __future__ import division, absolute_import, print_function
+
 import itertools
 
 from future.utils import raise_from
 
-try:
-    from typing import Union, Callable, Iterable, Any, TypeVar   # noqa
-    T = TypeVar('T')
-except ImportError:
-    pass
+from ww.types import Union, Callable, Iterable, Any, TypeVar, T  # noqa
 
 from collections import deque
 

@@ -146,10 +146,7 @@ from __future__ import (absolute_import, division, print_function)
 
 import itertools
 
-try:  # Python 2 doesn't have those imports
-    from typing import Any, Union, Callable, Iterable  # noqa
-except ImportError:
-    pass
+from ww.types import Any, Union, Callable, Iterable  # noqa
 
 try:  # Aliases for Python 2
     from itertools import imap, izip, ifilter  # type: ignore noqa

@@ -1,7 +1,9 @@
 # coding: utf-8
+
 from __future__ import (
     unicode_literals, division, print_function, absolute_import
 )
+
 import re
 
 import pytest
@@ -74,6 +76,20 @@ def test_replace():
     assert s(r'cAt').replace('a', 'b', flags='i') == 'cbt'
 
     assert s(r'cAt').replace('a', 'b', flags=re.I) == 'cbt'
+
+
+def test_replace_with_maxplit():
+    string = s(r'a-1,b-3,3c-d')
+    assert string.replace(('[,-]'), '', maxreplace=3) == 'a1b3,3c-d'
+
+
+def test_replace_with_callback():
+    string = s(r'a-1,b-3,3c-d')
+
+    def upper(match):
+        return match.group().upper()
+
+    assert string.replace(('[ab]'), upper, maxreplace=3) == 'A-1,B-3,3c-d'
 
 
 def test_join():

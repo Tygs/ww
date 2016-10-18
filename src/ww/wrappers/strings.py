@@ -2,8 +2,15 @@
 
 """
     StringWrapper is a convenient wrapper around strings. It behaves
-    like strings (the API is compatible), but make small improvements to the
-    existing methods and add some new methods.
+    like unicode strings (the API is compatible), but make small improvements
+    to the existing methods and add some new methods.
+
+    It doesn't accept bytes as an input. If you do so and it works, you must
+    know it's not a supported behavior and may change in the future. Only
+    pass:
+
+    - unicode objects in Python 2;
+    - str objects in Python 3.
 
     Example:
 
@@ -90,8 +97,8 @@
 
         There is much, much more...
 
-        You'll find bellow the detailed documentation for each method of
-        StringWrapper. Go have a look, there is some great stuff here!
+    You'll find bellow the detailed documentation for each method of
+    StringWrapper. Go have a look, there is some great stuff here!
 """
 
 from __future__ import (absolute_import, division, print_function)
@@ -114,7 +121,6 @@ from __future__ import (absolute_import, division, print_function)
 
 # TODO: match.__repr__ should show match, groups, groupsdict in summary
 
-import re
 import inspect
 
 from textwrap import dedent
@@ -130,9 +136,9 @@ except ImportError:
 
 from six import with_metaclass
 
-import ww  # type: ignore
-from ww.utils import ensure_tuple, unicode
-from ww.tools.strings import multisplit, parse_re_flags
+import ww
+from ww.tools.strings import multisplit, multireplace
+from ww.types import unicode, str_istr, str_istr_icallable, C, I  # noqa
 
 # TODO: make sure we copy all methods from str but return s()
 
@@ -175,31 +181,105 @@ class StringWrapper(with_metaclass(MetaF, unicode)):  # type: ignore
 
     # kwargs allows compatibilit with 2.7 and 3 since you can't use
     # keyword-only arguments in python 2
-    def split(self, *separators, **kwargs):  # type: ignore
-        # type: (*str, int, str) -> IteratableWrapper[StringWrapper]
+    def split(self,
+              *separators,  # type: StringWrapper
+              **kwargs  # Union[str, C[..., I[StringWrapper]]]
+              ):  # type (...) -> I[StringWrapper]
+        """ Like unicode.split, but accept several separators and regexes
+
+            Args:
+                separators: strings you can split on. Each string can be a
+                            regex.
+                maxsplit: max number of time you wish to split. default is 0,
+                          which means no limit.
+                flags: flags you wish to pass if you use regexes. You should
+                       pass them as a string containing a combination of:
+
+                        - 'm' for re.MULTILINE
+                        - 'x' for re.VERBOSE
+                        - 'v' for re.VERBOSE
+                        - 's' for re.DOTALL
+                        - '.' for re.DOTALL
+                        - 'd' for re.DEBUG
+                        - 'i' for re.IGNORECASE
+                        - 'u' for re.UNICODE
+                        - 'l' for re.LOCALE
+
+            Returns:
+                An iterable of substrings.
+
+            Raises:
+                ValueError: if you pass a flag without separators.
+                TypeError: if you pass something else than unicode strings.
+
+            Example:
+
+                >>> from ww import s
+                >>> string = s(u'fat     black cat, big bad dog')
+                >>> string.split().list()
+                [u'fat', u'black', u'cat,', u'big', u'bad', u'dog']
+                >>> string = s(u'a,b;c/d=a,b;c/d')
+                >>> string.split(u',', u';', u'[/=]', maxsplit=4).list()
+                [u'a', u'b', u'c', u'd', u'a,b;c/d']
+        """
+        kwargs.setdefault('cast', ww.l)
         chunks = multisplit(self, *separators, **kwargs)
         return ww.g(chunks).map(self.__class__)
 
-    def replace(self, patterns, substitutions, maxreplace=0, flags=0):
+    def replace(self,
+                patterns,  # type: str_istr
+                substitutions,  # type: str_istr_icallable
+                maxreplace=0,  # type: int
+                flags=0  # type: unicode
+                ):  # type: (...) -> StringWrapper
+        """ Like unicode.replace() but accept several substitutions and regexes
 
-        patterns = ensure_tuple(patterns)
-        substitutions = ensure_tuple(substitutions)
+            Args:
+                patterns: a string, or an iterable of strings to be replaced.
+                substitutions: a string or an iterable of string to use as a
+                               replacement. You can pass either one string, or
+                               an iterable containing the same number of
+                               sustitutions that you passed as patterns. You
+                               can also pass a callable instead of a string. It
+                               should expact a match object as a parameter.
+                maxreplace: the max number of replacement to make. 0 is no
+                            limit, which is the default.
+                flags: flags you wish to pass if you use regexes. You should
+                       pass them as a string containing a combination of:
 
-        num_of_subs = len(substitutions)
-        num_of_patterns = len(patterns)
-        if num_of_subs == 1:
-            substitutions *= num_of_patterns
-        else:
-            if len(patterns) != num_of_subs:
-                raise ValueError("You must have exactly one substitution "
-                                 "for each pattern or only one substitution")
+                        - 'm' for re.MULTILINE
+                        - 'x' for re.VERBOSE
+                        - 'v' for re.VERBOSE
+                        - 's' for re.DOTALL
+                        - '.' for re.DOTALL
+                        - 'd' for re.DEBUG
+                        - 'i' for re.IGNORECASE
+                        - 'u' for re.UNICODE
+                        - 'l' for re.LOCALE
 
-        flags = parse_re_flags(flags)
+            Returns:
+                The string with replaced bits.
 
-        res = self
-        for pattern, sub in zip(patterns, substitutions):
-            res = re.sub(pattern, sub, res, count=maxreplace, flags=flags)
+            Raises:
+                ValueError: if you pass the wrong number of substitution.
 
+            Example:
+
+                >>> from __future__ import unicode_literals
+                >>> from ww import s
+                >>> s('a,b;c/d').replace((',', ';', '/'), ',')
+                u'a,b,c,d'
+                >>> s('a1b33c-d').replace('\d+', ',')
+                u'a,b,c-d'
+                >>> s('a-1,b-3,3c-d').replace('[,-]', '', maxreplace=3)
+                u'a1b3,3c-d'
+                >>> def upper(match):
+                ...     return match.group().upper()
+                ...
+                >>> s('a-1,b-3,3c-d').replace('[ab]', upper)
+                u'A-1,B-3,3c-d'
+        """
+        res = multireplace(self, patterns, substitutions, maxreplace, flags)
         return self.__class__(res)
 
     def dedent(self):

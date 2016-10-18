@@ -85,8 +85,10 @@ Versions infos
 ---------------
 
 **Compatibility:** CPython 2.7+/3.3+ and the last stable versions of pypy2/3.
+
 **Platform:** It should be any as the lib is pure Python and is not OS related.
 But right now we only tested it on GNU/Linux.
+
 **Version:** 0.1
 
 WARNING

@@ -1,13 +1,13 @@
+# coding: utf-8
+
+from __future__ import absolute_import, division, print_function
+
 # TODO: add "removable_property" we use in tygs
 # TODO: add reify, based on removable property
 from past.builtins import basestring
 
-try:
-    unicode = unicode  # type: ignore
-except NameError:
-    unicode = str
 
-
+# TODO: make it accept only unicode
 def ensure_tuple(val):
     if not isinstance(val, basestring):
         try:

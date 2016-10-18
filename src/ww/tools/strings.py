@@ -1,12 +1,45 @@
 # coding: utf-8
 
+"""
+    :doc:`s() </string_wrapper>` is very convenient, but it's only a
+    thin wrapper on top of regular strings and the tools from this module.
+
+    So if you want to apply some of the goodies from it without having to
+    turn your strings into StringWrapper objects, you can use the functions
+    from this module directly.
+
+    They don't accept bytes as an input. If you do so and it works, you must
+    know it's not a supported behavior and may change in the future. Only
+    pass:
+
+    - unicode objects in Python 2;
+    - str objects in Python 3.
+
+    Example:
+
+        >>> from ww.tools.strings import multisplit  # same as s().split()
+        >>> string = u'a,b;c/d=a,b;c/d'
+        >>> chunks = multisplit(string, u',', u';', u'[/=]', maxsplit=4)
+        >>> for chunk in chunks: print(chunk)
+        a
+        b
+        c
+        d
+        a,b;c/d
+
+    You'll find bellow the detailed documentation for each functions of.
+    Go have a look, there is some great stuff here!
+"""
+
+from __future__ import absolute_import, division, print_function
+
 import re
 
 from past.builtins import basestring
 
 import ww
-from ww.utils import require_positive_number, unicode
-
+from ww.utils import require_positive_number, ensure_tuple
+from ww.types import unicode, str_istr, str_istr_icallable, C, I  # noqa
 
 REGEX_FLAGS = {
     'm': re.MULTILINE,
@@ -41,11 +74,14 @@ def parse_re_flags(flags):
 # kwargs allow compatibiliy with 2.7 and 3 since you can't use
 # keyword-only arguments in python 2
 # TODO: remove empty strings
-def multisplit(string, *separators, **kwargs):  # type: ignore
-    # type: (*unicode, int, unicode) -> list[unicode]
+def multisplit(string,
+               *separators,  # type: unicode
+               **kwargs  # type: Union[unicode, C[..., I[unicode]]]
+               ):  # type: (...) -> I
     """ Like unicode.split, but accept several separators and regexes
 
         Args:
+            string: the string to split.
             separators: strings you can split on. Each string can be a
                         regex.
             maxsplit: max number of time you wish to split. default is 0,
@@ -62,15 +98,34 @@ def multisplit(string, *separators, **kwargs):  # type: ignore
                     - 'i' for re.IGNORECASE
                     - 'u' for re.UNICODE
                     - 'l' for re.LOCALE
+            cast: what to cast the result to
+
+        Returns:
+            An iterable of substrings.
+
+        Raises:
+            ValueError: if you pass a flag without separators.
+            TypeError: if you pass something else than unicode strings.
 
         Example:
 
-            >>> from ww import s
-            >>> string = s('fat     black cat, big bad dog')
-            >>> string.split().list()
-            [u'fat', u'black', u'cat,', u'big', u'bad', u'dog']
+            >>> for word in multisplit(u'fat     black cat, big'): print(word)
+            fat
+            black
+            cat,
+            big
+            >>> string = u'a,b;c/d=a,b;c/d'
+            >>> chunks = multisplit(string, u',', u';', u'[/=]', maxsplit=4)
+            >>> for chunk in chunks: print(chunk)
+            a
+            b
+            c
+            d
+            a,b;c/d
+
     """
 
+    cast = kwargs.pop('cast', list)
     flags = parse_re_flags(kwargs.get('flags', 0))
     # 0 means "no limit" for re.split
     maxsplit = require_positive_number(kwargs.get('maxsplit', 0),
@@ -102,10 +157,10 @@ def multisplit(string, *separators, **kwargs):  # type: ignore
 
     # simple code for when you need to split the whole string
     if maxsplit == 0:
-        return _split(string, seps, flags)
+        return cast(_split(string, seps, flags))
 
     # slow implementation with checks for recursive maxsplit
-    return _split_with_max(string, seps, maxsplit, flags)
+    return cast(_split_with_max(string, seps, maxsplit, flags))
 
 
 def _split(string, separators, flags=0):
@@ -154,3 +209,93 @@ def _split_with_max(string, separators, maxsplit, flags=0):
                 maxsplit -= 1
 
             string = tail
+
+
+def multireplace(string,  # type: unicode
+                 patterns,  # type: str_or_str_iterable
+                 substitutions,  # type: str_istr_icallable
+                 maxreplace=0,  # type: int
+                 flags=0  # type: unicode
+                 ):  # type: (...) -> bool
+    """ Like unicode.replace() but accept several substitutions and regexes
+
+        Args:
+            string: the string to split on.
+            patterns: a string, or an iterable of strings to be replaced.
+            substitutions: a string or an iterable of string to use as a
+                           replacement. You can pass either one string, or
+                           an iterable containing the same number of
+                           sustitutions that you passed as patterns. You can
+                           also pass a callable instead of a string. It
+                           should expact a match object as a parameter.
+            maxreplace: the max number of replacement to make. 0 is no limit,
+                        which is the default.
+            flags: flags you wish to pass if you use regexes. You should
+                   pass them as a string containing a combination of:
+
+                    - 'm' for re.MULTILINE
+                    - 'x' for re.VERBOSE
+                    - 'v' for re.VERBOSE
+                    - 's' for re.DOTALL
+                    - '.' for re.DOTALL
+                    - 'd' for re.DEBUG
+                    - 'i' for re.IGNORECASE
+                    - 'u' for re.UNICODE
+                    - 'l' for re.LOCALE
+
+        Returns:
+            The string with replaced bits.
+
+        Raises:
+            ValueError: if you pass the wrong number of substitution.
+
+        Example:
+
+            >>> print(multireplace(u'a,b;c/d', (u',', u';', u'/'), u','))
+            a,b,c,d
+            >>> print(multireplace(u'a1b33c-d', u'\d+', u','))
+            a,b,c-d
+            >>> print(multireplace(u'a-1,b-3,3c-d', u',|-', u'', maxreplace=3))
+            a1b3,3c-d
+            >>> def upper(match):
+            ...     return match.group().upper()
+            ...
+            >>> print(multireplace(u'a-1,b-3,3c-d', u'[ab]', upper))
+            A-1,B-3,3c-d
+    """
+
+    # we can pass either a string or an iterable of strings
+    patterns = ensure_tuple(patterns)
+    substitutions = ensure_tuple(substitutions)
+
+    # you can either have:
+    # - many patterns, one substitution
+    # - many patterns, exactly as many substitutions
+    # anything else is an error
+    num_of_subs = len(substitutions)
+    num_of_patterns = len(patterns)
+
+    if num_of_subs == 1 and num_of_patterns > 0:
+        substitutions *= num_of_patterns
+    else:
+        if len(patterns) != num_of_subs:
+            raise ValueError("You must have exactly one substitution "
+                             "for each pattern or only one substitution")
+
+    flags = parse_re_flags(flags)
+
+    # no limit for replacing, use a simple code
+    if not maxreplace:
+        for pattern, sub in zip(patterns, substitutions):
+            string, count = re.subn(pattern, sub, string, flags=flags)
+        return string
+
+    # ensure we respect the max number of replace accross substitutions
+    for pattern, sub in zip(patterns, substitutions):
+        string, count = re.subn(pattern, sub, string,
+                                count=maxreplace, flags=flags)
+        maxreplace -= count
+        if maxreplace == 0:
+            break
+
+    return string
