@@ -33,6 +33,11 @@ def test_iter():
     for i, x in enumerate(g(foo())):
         assert x == i
 
+    with pytest.raises(TypeError) as excinfo:
+        g(range(10), 1)
+
+    assert 'g() only accept iterables' in str(excinfo.value)
+
 
 def test_nested():
     for i, x in enumerate(g(g(g('abcd')))):

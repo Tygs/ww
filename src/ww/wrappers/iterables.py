@@ -183,6 +183,12 @@ class IterableWrapper(BaseWrapper):
             iterable: iterable to use for the iner state.
             *args: other iterable to concatenate to the first one.
 
+        Returns:
+            None
+
+        Raises:
+            TypeError: if some arguments are not iterable.
+
         Example:
 
             >>> from ww import g
@@ -192,9 +198,23 @@ class IterableWrapper(BaseWrapper):
             [0, 1, 2, 'a', 'b', 'c']
         """
 
-        if args:
-            iterable = itertools.chain(iterable, *args)
-        self.iterator = iter(iterable)
+        # Check early if all elements are indeed iterables so that
+        # they get an error now and not down the road while trying to
+        # process it.
+        for i, elem in enumerate((iterable, ) + args):
+            try:
+                iter(elem)
+            except TypeError:
+                raise TypeError(ww.s >> """
+                    Argument "{}" of type "{}" (in position {}) is
+                    not iterable. g() only accept iterables, meaning an object
+                    you can use a for loop on. You can check if an object is
+                    iterable by calling iter() on it (iterables don't raise
+                    a TypeError). Also, iterables usually have either an
+                    __iter__() method or a __len__() and __getitem__() method.
+                """.format(elem, type(elem), i))
+
+        self.iterator = iter(itertools.chain(iterable, *args))
         self._tee_called = False
 
     def __iter__(self):

@@ -303,6 +303,7 @@ class StringWrapper(with_metaclass(MetaF, unicode)):  # type: ignore
     def from_bytes(cls, byte_string, encoding=None, errors='strict'):
         if encoding is None:
             encoding = chardet.detect(byte_string)['encoding']
+            # TODO: strip() and ignore first line ?
             raise ValueError(FStringWrapper >> """
                              from_bytes() expects a second argument:
                              'encoding'. If you don't know which encoding,
