@@ -444,59 +444,171 @@ class IterableWrapper(BaseWrapper):
         lst = builtins.sorted(self.iterator, key=keyfunc, reverse=reverse)
         return self.__class__(lst)
 
+    # TODO: add a sort_func argument
     def groupby(self, keyfunc=None, reverse=False, cast=tuple):
         # type: (Callable, bool, Callable) -> IterableWrapper
+        """ Return a generator with returns (key, sub-iterator) grouped pairs.
+
+            Create an iterator which returns (key, sub-iterator) (or any kind
+            of object casted by the `cast` parameter) grouped by each value of
+            key(value).
+
+            Example:
+
+                >>> from ww import g
+                >>> my_gen = g(['morbier', 'cheddar', 'cantal',\
+                                'munster'])
+                >>> my_gen.groupby(lambda i: i[0]).list()
+                [('c', ('cheddar', 'cantal')), ('m', ('morbier', 'munster'))]
+
+        """
         # full name to avoid shadowing
         gen = ww.tools.iterables.groupby(self.iterator, keyfunc, reverse, cast)
         return self.__class__(gen)
 
     def enumerate(self, start=0):
         # type: (int) -> IterableWrapper
+        """ Return an enumerator.
+
+            Example:
+
+                >>> from ww import g
+                >>> my_g = g('cheese')
+                >>> my_g.enumerate().list()
+                [(0, 'c'), (1, 'h'), (2, 'e'), (3, 'e'), (4, 's'), (5, 'e')]
+        """
         return self.__class__(enumerate(self.iterator, start))
 
     def count(self):
+        # type: () -> int
+        """ Return the number of elements in the iterable.
+
+            Example:
+
+                >>> from ww import g
+                >>> g(range(3)).count()
+                3
+
+        """
         try:
             return len(self.iterator)
         except TypeError:
-            for i, _ in enumerate(self.iterator):
+            for i, _ in enumerate(self.iterator, 1):
                 pass
             return i
 
     def copy(self):
+        # type: () -> IterableWrapper
+        """ Return an exact copy of the iterable.
+
+            The reference of the new iterable will be the same as the source
+            when `copy()` was called.
+
+            Example:
+
+                >>> from ww import g
+                >>> my_g_1 = g(range(3))
+                >>> my_g_2 = my_g_1.copy()
+                >>> next(my_g_1)
+                0
+                >>> next(my_g_1)
+                1
+                >>> next(my_g_2)
+                0
+        """
+
         self.iterator, new = itertools.tee(self.iterator)
         return self.__class__(new)
 
     def join(self, joiner, formatter=lambda s, t: t.format(s), template="{}"):
         # type: (Iterable, Callable, str) -> ww.s.StringWrapper
+        """ Join every item of the iterable into a string.
+            This is just like the `join()` method on `str()`, but conveniently
+            stored on the iterable itself.
+
+            Example:
+
+                >>> from ww import g
+                >>> g(range(3)).join('|')
+                u'0|1|2'
+                >>> print(g(range(3)).join('~~',\
+                    formatter=lambda s, t: '"{}"'.format(t.format(s))))
+                "0"~~"1"~~"2"
+                >>> print(g(range(3)).join('\\n', template='- {}'))
+                - 0
+                - 1
+                - 2
+        """
         return ww.s(joiner).join(self, formatter, template)
 
     def __repr__(self):
+        # type: () -> str
         return "<IterableWrapper generator>"
 
     # TODO: use t() instead of tuple
-    def chunks(self, chunksize, cast=tuple):
+    def chunks(self, size, cast=tuple):
         # type: (int, Callable) -> IterableWrapper
         """
-            Yields items from an iterator in iterable chunks.
+            Yield items from an iterator in iterable chunks.
+
+            Example:
+
+            >>> from ww import g
+            >>> my_g = g(range(12))
+            >>> chunks = my_g.chunks(3)
+            >>> print(type(chunks))
+            <class 'ww.wrappers.iterables.IterableWrapper'>
+            >>> chunks = chunks.list()
+            >>> chunks[0]
+            (0, 1, 2)
+            >>> chunks[1]
+            (3, 4, 5)
         """
-        return self.__class__(chunks(self.iterator, chunksize, cast))
+        return self.__class__(chunks(self.iterator, size, cast))
 
     def window(self, size=2, cast=tuple):
         # type: (int, Callable) -> IterableWrapper
-        """
-        Yields iterms by bunch of a given size, but rolling only one item
-        in and out at a time when iterating.
+        """ Yield items using a sliding window.
+
+            Wield chunks of a given size, but rolling only one item
+            in and out at a time when iterating.
+
+            Example:
+                >>> from ww import g
+                >>> my_g = g(range(12))
+                >>> my_window = my_g.window(3).list()
+                >>> my_window[0]
+                (0, 1, 2)
+                >>> my_window[1]
+                (1, 2, 3)
         """
         return self.__class__(window(self.iterator, size, cast))
 
     def firsts(self, items=1, default=None):
         # type: (int, Any) -> IterableWrapper
-        """ Lazily return the first x items from this iterable or default. """
+        """ Lazily return the first x items from this iterable or default.
+
+            Example:
+
+            >>> from ww import g
+            >>> my_g = g(range(12))
+            >>> my_g.firsts(3).list()
+            [0, 1, 2]
+        """
         return self.__class__(firsts(self.iterator, items, default))
 
     def lasts(self, items=1, default=None):
         # type: (int, Any) -> IterableWrapper
-        """ Lazily return the lasts x items from this iterable or default. """
+        """ Lazily return the lasts x items from this iterable or default.
+
+            Example:
+
+            >>> from ww import g
+            >>> my_g = g(range(12))
+            >>> my_g.lasts(3).list()
+            [9, 10, 11]
+
+        """
         return self.__class__(lasts(self.iterator, items, default))
 
     # allow using a bloom filter as an alternative to set
@@ -504,5 +616,59 @@ class IterableWrapper(BaseWrapper):
     # TODO : find a way to say "any type accepting 'in'"
     def skip_duplicates(self, key=lambda x: x, fingerprints=None):
         # type: (Callable, Any) -> IterableWrapper
+        """ Yield unique values.
+
+            Returns a generator that will yield all objects from iterable,
+            skipping duplicates.
+
+            Duplicates are identified using the `key` function to calculate a
+            unique fingerprint. This does not use natural equality, but the
+            result use a set() to remove duplicates, so defining __eq__
+            on your objects would have no effect.
+
+            By default the fingerprint is the object itself, which ensure the
+            functions works as-is with an iterable of primitives such as int,
+            str or tuple.
+
+            :Example:
+
+                >>> list(skip_duplicates([1, 2, 3, 4, 4, 2, 1, 3 , 4]))
+                [1, 2, 3, 4]
+
+            The return value of `key` MUST be hashable, which means for
+            non hashable objects such as dict, set or list, you need to specify
+            a function that returns a hashable fingerprint.
+
+            :Example:
+
+                >>> list(skip_duplicates(([], [], (), [1, 2], (1, 2)),
+                ...                      lambda x: tuple(x)))
+                [[], [1, 2]]
+                >>> list(skip_duplicates(([], [], (), [1, 2], (1, 2)),
+                ...                      lambda x: (type(x), tuple(x))))
+                [[], (), [1, 2], (1, 2)]
+
+            For more complex types, such as custom classes, the default
+            behavior is to remove nothing. You MUST provide a `key` function is
+            you wish to filter those.
+
+            :Example:
+
+                >>> class Test(object):
+                ...    def __init__(self, foo='bar'):
+                ...        self.foo = foo
+                ...    def __repr__(self):
+                ...        return "Test('%s')" % self.foo
+                ...
+                >>> list(skip_duplicates([Test(), Test(), Test('other')]))
+                [Test('bar'), Test('bar'), Test('other')]
+                >>> list(skip_duplicates([Test(), Test(), Test('other')],\
+                                         lambda x: x.foo))
+                [Test('bar'), Test('other')]
+
+        """
+
         uniques = skip_duplicates(self.iterator, key, fingerprints)
         return self.__class__(uniques)
+
+    # TODO: add a consume() method
