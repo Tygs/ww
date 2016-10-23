@@ -7,7 +7,8 @@
     whatever you can apply a for loop to. And it will behave the same way
     regarding iteration.
 
-    It does not assume a size, it does not even assumes the iterable is finite.
+    It does not assume a size, it does not even assumes the iterable is
+    finite.
 
     When possible IterableWrapper tries to not hold data in memory, but some
     operations require it, so when in doubt, check the methods doc.
@@ -21,14 +22,14 @@
 
     .. WARNING::
 
-        g() turns anything into a one-time chain of lazy generators. If you want
-        to keep the underlying behavior of your iterable, g() is not the best
-        choice. You can checkout l(), t(), s(), etc. for wrappers that
-        match g() API but keep t
+        g() turns anything into a one-time chain of lazy generators. If you
+        want to keep the underlying behavior of your iterable, g() is not the
+        best choice. You can checkout l(), t(), s(), etc. for wrappers that
+        match g() API but keep the behavior of the matchined data structure.
 
-        However, g() has the advantage of working with ANY iterable, no
-        matter the type or the size. Most of its methods are lazy and return
-        a new instance of g().
+        However, g() has the advantage of working with ANY iterable, no matter
+        the type or the size. Most of its methods are lazy and return a new
+        instance of g().
 
         The other wrappers are specialized and try to mimic the behavior of
         one particular type: l() for lists, t() for tuples, s() for strings...
@@ -43,8 +44,8 @@
 
             >>> from ww.wrappers.iterables import IterableWrapper
 
-        `g` is just an alias of IterableWrapper, but it's what most people will
-        want to use most of the time. Hence it's what we will use in the
+        `g` is just an alias of IterableWrapper, but it's what most people
+        will want to use most of the time. Hence it's what we will use in the
         examples.
 
         `i` could have been a better alias for "iterable", but `i` is used
@@ -78,7 +79,7 @@
         Itertools at your fingertips::
 
             >>> gen = g(x * x for x in range(10))
-            >>> gen.groupby(lambda x: x % 2).list() # autosort and cast groups
+            >>> gen.groupby(lambda x: x % 2).list() # autosort & cast groups
             [(0, (0, 4, 16, 36, 64)), (1, (1, 9, 25, 49, 81))]
             >>> a, b = g(range(3)).tee(2)
             >>> a.list()
@@ -202,7 +203,8 @@ class IterableWrapper(BaseWrapper):
 
             Args:
                 iterable: iterable to use for the iner state.
-                *more_iterables: other iterable to concatenate to the first one.
+                *more_iterables: other iterable to concatenate to the
+                                 first one.
 
             Returns:
                 None
@@ -371,7 +373,7 @@ class IterableWrapper(BaseWrapper):
         # type: (int) -> IterableWrapper
         """ Duplicate itself and concatenate the results.
 
-            It's basically a shortcut for g().chain(*g().tee()).
+            It's basically a shortcut for `g().chain(*g().tee())`.
 
             Args:
                 num: The number of times to duplicate.
@@ -512,7 +514,7 @@ class IterableWrapper(BaseWrapper):
         """
         return self.__class__(izip(self.iterator, *others))
 
-     # TODO: add filter so we can do the filter(bool) trick
+    # TODO: add filter so we can do the filter(bool) trick
 
     # TODO: limit add an argument to limit the number of cycles.
     def cycle(self):
@@ -542,7 +544,7 @@ class IterableWrapper(BaseWrapper):
         """
         return self.__class__(itertools.cycle(self.iterator))
 
-    def sorted(self, keyfunc=None, reverse=False, **kwargs):
+    def sorted(self, keyfunc=None, reverse=False):
         # type: (Callable, bool) -> IterableWrapper
         """ Sort the iterable.
 
@@ -563,6 +565,7 @@ class IterableWrapper(BaseWrapper):
 
             Example:
 
+                >>> from ww import g
                 >>> animals = ['dog', 'cat', 'zebra', 'monkey']
                 >>> for animal in g(animals).sorted():
                 ...     print(animal)
@@ -575,10 +578,7 @@ class IterableWrapper(BaseWrapper):
                 zebra
                 monkey
                 dog
-                catzebra
-                dog
                 cat
-                monkey
                 >>> for animal in g(animals).sorted(lambda animal: animal[-1]):
                 ...     print(animal)
                 zebra

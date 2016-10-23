@@ -37,3 +37,5 @@ except ImportError:
         str_istr_icallable = None
         TypeVar = None
         T = None
+        C = None
+        I = None

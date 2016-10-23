@@ -10,7 +10,7 @@ Wonderful Wrappers: unobtrusive wrappers improving Python builtins and more
     :alt: Documentation Status
 
 - **Compatibility:** CPython 2.7+/3.3+ and the last stable versions of pypy2/3.
-- **Platform:** Agnostic. But only tested on GNU/Linux for nox.
+- **Platform:** Agnostic. But only tested on GNU/Linux for now.
 - **Version:** 0.2
 - `Documentation`_.
 
@@ -169,6 +169,8 @@ Python interpreter installed on your system to be ran.
 
 E.G: py33 requires you to have CPython 3.3 installed on your machine, and pypy3
  supposes you have PyPy V3 on your machine.
+
+The mypy, bandit and doc env require you to have Python3.5 installed.
 
 Running all the tests in all envs can be done with:
 
