@@ -637,7 +637,7 @@ class IterableWrapper(BaseWrapper):
 
         """
         try:
-            return len(self.iterator)
+            return len(self.iterator)  # type: ignore
         except TypeError:
             for i, _ in enumerate(self.iterator, 1):
                 pass
