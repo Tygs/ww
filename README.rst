@@ -11,7 +11,7 @@ Wonderful Wrappers: unobtrusive wrappers improving Python builtins and more
 
 - **Compatibility:** CPython 2.7+/3.3+ and the last stable versions of pypy2/3.
 - **Platform:** Agnostic. But only tested on GNU/Linux for nox.
-- **Version:** 0.1.1
+- **Version:** 0.2
 - `Documentation`_.
 
 **Install with**::
@@ -181,6 +181,25 @@ they will be skipped.
 In any case, running the checkers and linters is strongly advised, as any PR
 failing them will be rejected.
 
+Versioning scheme
+------------------
+
+Versioning follow `SemVer`_, althoug we won't commit to stability before version 1.0.
+
+Release with X.Y.Z will be of 2 kinds:
+
+- if Y is odd, the release will add features.
+- if Y is even or Z > 0, the release will be dedicated to bug fixing,
+  documentation, API improvment and performances.
+
+E.G.:
+
+- 0.2.1: 1 > 0 so no new features.
+- 1.4.1: 4 is even, so no new features.
+- 2.1.0: 1 is odd, you may see new feature in this release.
+
+
 .. _PEP8: https://www.python.org/dev/peps/pep-0008/
 .. _Google style: http://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html
 .. _Documentation: http://wonderful-wrappers.readthedocs.io/
+.. _SemVer: http://semver.org/

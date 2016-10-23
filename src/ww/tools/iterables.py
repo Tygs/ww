@@ -38,6 +38,7 @@ def starts_when(iterable, condition):
     """Start yielding items when a condition arise.
 
     Args:
+        iterable: the iterable to filter.
         condition: if the callable returns True once, start yielding
                    items. If it's not a callable, it will be converted
                    to one as `lambda condition: condition == item`.
@@ -62,6 +63,7 @@ def stops_when(iterable, condition):
     """Stop yielding items when a condition arise.
 
     Args:
+        iterable: the iterable to filter.
         condition: if the callable returns True once, stop yielding
                    items. If it's not a callable, it will be converted
                    to one as `lambda condition: condition == item`.
