@@ -12,7 +12,7 @@ except NameError:
 try:
     import typing
 except ImportError:
-    class _:
+    class _:  # pylint: disable=too-few-public-methods
         TYPE_CHECKING = False
     locals()['typing'] = _
 

@@ -137,6 +137,8 @@
 
 # TODO stuff returning a strings in g() would be an s() object
 # TODO: add features from
+# TODO: support numpy slicing style
+# TODO: support numpy filtering style
 # TODO: get(item, default) that does try g[item] except IndexError: default
 # https://docs.python.org/3/library/itertools.html#itertools-recipes
 
@@ -250,6 +252,7 @@ class IterableWrapper(BaseWrapper):
         """
         return next(self.iterator, default)
 
+    # alias for Python 2/3 compat
     __next__ = next
 
     def __add__(self, other):
@@ -260,6 +263,8 @@ class IterableWrapper(BaseWrapper):
 
         Args:
             other: The other generator to chain with the current one.
+
+        Returns: IterableWrapper
 
         Example:
 

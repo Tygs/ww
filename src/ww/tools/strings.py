@@ -277,8 +277,7 @@ def multireplace(string,  # type: unicode
 
     if num_of_subs == 1 and num_of_patterns > 0:
         substitutions *= num_of_patterns
-    else:
-        if len(patterns) != num_of_subs:
+    elif len(patterns) != num_of_subs:
             raise ValueError("You must have exactly one substitution "
                              "for each pattern or only one substitution")
 

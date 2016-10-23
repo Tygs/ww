@@ -26,7 +26,9 @@ import itertools
 
 from future.utils import raise_from
 
-from ww.types import Union, Callable, Iterable, Any, TypeVar, T  # noqa
+import ww
+
+from ww.types import Union, Callable, Iterable, Any, T  # noqa
 
 from collections import deque
 
@@ -286,9 +288,11 @@ def firsts(iterable, items=1, default=None):
 
     try:
         items = int(items)
-        assert items >= 0
-    except (TypeError, AssertionError):
-        raise ValueError("items should be set so that int(items) >= 0")
+    except TypeError:
+        raise ValueError("items should be an int but is currently "
+                         "'{}' of type '{}'".format(items, type(items)))
+    if items < 0:
+        raise ValueError(ww.f("items is {items} but should be greater than 0"))
 
     for i, item in zip(range(items), iterable):
         yield item
@@ -303,7 +307,7 @@ def lasts(iterable, items=1, default=None):
 
     last_items = deque(iterable, maxlen=items)
 
-    for x in range(items - len(last_items)):
+    for _ in range(items - len(last_items)):
         yield default
 
     for y in last_items:

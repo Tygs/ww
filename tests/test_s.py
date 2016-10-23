@@ -36,9 +36,9 @@ def test_split():
 
     assert s('a,b;c/d').split(',', ';', '/').list() == ['a', 'b', 'c', 'd']
 
-    assert s(r'a1b33c-d').split('\d+').list() == ['a', 'b', 'c-d']
+    assert s(r'a1b33c-d').split(r'\d+').list() == ['a', 'b', 'c-d']
 
-    assert s(r'a1b33c-d').split('\d+', '-').list() == ['a', 'b', 'c', 'd']
+    assert s(r'a1b33c-d').split(r'\d+', '-').list() == ['a', 'b', 'c', 'd']
 
     assert s(r'cAt').split('a', flags='i').list() == ['c', 't']
 
@@ -69,9 +69,9 @@ def test_replace():
 
     assert s('a,b;c/d').replace((',', ';', '/'), ',') == 'a,b,c,d'
 
-    assert s(r'a1b33c-d').replace('\d+', ',') == 'a,b,c-d'
+    assert s(r'a1b33c-d').replace(r'\d+', ',') == 'a,b,c-d'
 
-    assert s(r'a1b33c-d').replace(('\d+', '-'), ',') == 'a,b,c,d'
+    assert s(r'a1b33c-d').replace((r'\d+', '-'), ',') == 'a,b,c,d'
 
     assert s(r'cAt').replace('a', 'b', flags='i') == 'cbt'
 
