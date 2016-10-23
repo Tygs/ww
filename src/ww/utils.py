@@ -1,13 +1,15 @@
-# coding: utf-8
-
-from __future__ import absolute_import, division, print_function
-
 # TODO: add "removable_property" we use in tygs
 # TODO: add reify, based on removable property
+from functools import wraps
+
 from past.builtins import basestring
 
+try:
+    unicode = unicode  # type: ignore
+except NameError:
+    unicode = str
 
-# TODO: make it accept only unicode
+
 def ensure_tuple(val):
     if not isinstance(val, basestring):
         try:
@@ -32,3 +34,24 @@ def require_positive_number(number, name,
         raise ValueError(tpl.format(name, number))
 
     return number
+
+
+def renamed_argument(old_names, new_names):
+
+    old_names = ensure_tuple(old_names)
+    new_names = ensure_tuple(new_names)
+
+    def decorator(func):
+        @wraps(func)
+        def decorated(*args, **kwargs):
+            if old_names in kwargs:
+                if new_names not in kwargs:
+                    raise TypeError(('{} argument doesn\'t exist. Instead,'
+                                     'use {}').format(old_names, new_names))
+                else:
+                    raise TypeError(('You gave both {} and {} arguments, '
+                                     'but {1} doesn\'t exist.')
+                                    .format(old_names, new_names))
+            return func(*args, **kwargs)
+        return decorated
+    return decorator

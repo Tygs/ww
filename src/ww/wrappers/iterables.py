@@ -169,6 +169,7 @@ from __future__ import (absolute_import, division, print_function)
 import itertools
 
 from ww.types import Any, Union, Callable, Iterable  # noqa
+from ww.utils import renamed_argument
 
 try:  # Aliases for Python 2
     from itertools import imap, izip, ifilter  # type: ignore noqa
@@ -544,6 +545,7 @@ class IterableWrapper(BaseWrapper):
         """
         return self.__class__(itertools.cycle(self.iterator))
 
+    @renamed_argument('key', 'keyfunc')
     def sorted(self, keyfunc=None, reverse=False):
         # type: (Callable, bool) -> IterableWrapper
         """ Sort the iterable.

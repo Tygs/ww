@@ -29,6 +29,7 @@ from future.utils import raise_from
 import ww
 
 from ww.types import Union, Callable, Iterable, Any, T  # noqa
+from ww.utils import renamed_argument
 
 from collections import deque
 
@@ -277,6 +278,7 @@ def iterslice(iterable, start=0, stop=None, step=1):
     return itertools.islice(iterable, start, stop, step)
 
 
+@renamed_argument('key', 'keyfunc')
 def groupby(iterable, keyfunc=None, reverse=False, cast=tuple):
     # type: (Iterable, Callable, bool, Callable) -> Iterable
     sorted_iterable = sorted(iterable, key=keyfunc, reverse=reverse)
