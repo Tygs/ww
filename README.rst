@@ -9,7 +9,7 @@ Wonderful Wrappers: unobtrusive wrappers improving Python builtins and more
     :target: http://wonderful-wrappers.readthedocs.io/en/latest/?badge=latest
     :alt: Documentation Status
 
-- **Compatibility:** CPython 2.7+/3.3+ and the last stable versions of pypy2/3.
+- **Compatibility:** CPython 2.7+/3.3+ and the last stable versions of pypy2.
 - **Platform:** Agnostic. But only tested on GNU/Linux for now.
 - **Version:** 0.2
 - `Documentation`_.
@@ -154,7 +154,6 @@ E.G::
     coverage
     mypy
     bandit
-    pypy3
 
 You can run them individually with::
 
@@ -167,8 +166,8 @@ E.G:
 All envs with a name starting with "py" requires that you have the matching
 Python interpreter installed on your system to be ran.
 
-E.G: py33 requires you to have CPython 3.3 installed on your machine, and pypy3
- supposes you have PyPy V3 on your machine.
+E.G: py33 requires you to have CPython 3.3 installed on your machine, and pypy2
+ supposes you have PyPy2 on your machine.
 
 The mypy, bandit and doc env require you to have Python3.5 installed.
 

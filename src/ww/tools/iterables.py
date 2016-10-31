@@ -29,6 +29,7 @@ from future.utils import raise_from
 import ww
 
 from ww.types import Union, Callable, Iterable, Any, T  # noqa
+from ww.utils import renamed_argument
 
 from collections import deque
 
@@ -291,6 +292,7 @@ def iterslice(iterable, start=0, stop=None, step=1):
 
 # TODO: allow to disable auto sorting. Document how to make it behave
 # like the original groupby
+@renamed_argument('key', 'keyfunc')
 def groupby(iterable, keyfunc=None, reverse=False, cast=tuple):
     # type: (Iterable, Callable, bool, Callable) -> Iterable
     sorted_iterable = sorted(iterable, key=keyfunc, reverse=reverse)
@@ -307,7 +309,7 @@ def firsts(iterable, items=1, default=None):
     try:
         items = int(items)
     except TypeError:
-        raise ValueError("items should usable as an int but is currently "
+        raise ValueError("items should be usable as an int but is currently "
                          "'{}' of type '{}'".format(items, type(items)))
     if items < 0:
         raise ValueError(ww.f("items is {items} but should be greater than 0"))
