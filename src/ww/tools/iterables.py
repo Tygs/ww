@@ -32,6 +32,18 @@ from ww.types import Union, Callable, Iterable, Any, T  # noqa
 
 from collections import deque
 
+# TODO: implement all https://docs.python.org/3/library/itertools.html
+# which means backports and receipes
+# TODO: cycle, but accept a max repeat
+# TODO: filter() but:
+# if an iterable is first element, lambda x: x in first_element
+# if an iterable is a non callable scalare,
+# lambda x: x == first_element
+# a 3rd param to take an Exception or a list of exception to ignore so you can
+# filter out stuff raisin exceptions
+# TODO: map, but a 3rd param to take an Exception or a list of exception
+# to ignore so you can filter out stuff raisin exceptions
+
 
 def starts_when(iterable, condition):
     # type: (Iterable, Union[Callable, Any]) -> Iterable
@@ -277,6 +289,8 @@ def iterslice(iterable, start=0, stop=None, step=1):
     return itertools.islice(iterable, start, stop, step)
 
 
+# TODO: allow to disable auto sorting. Document how to make it behave
+# like the original groupby
 def groupby(iterable, keyfunc=None, reverse=False, cast=tuple):
     # type: (Iterable, Callable, bool, Callable) -> Iterable
     sorted_iterable = sorted(iterable, key=keyfunc, reverse=reverse)
@@ -284,6 +298,8 @@ def groupby(iterable, keyfunc=None, reverse=False, cast=tuple):
         yield key, cast(group)
 
 
+# TODO: make the same things than in matrix, where the default value
+# can be a callable, a non string iterable, or a value
 def firsts(iterable, items=1, default=None):
     # type: (Iterable[T], int, T) -> Iterable[T]
     """ Lazily return the first x items from this iterable or default. """
@@ -291,11 +307,12 @@ def firsts(iterable, items=1, default=None):
     try:
         items = int(items)
     except TypeError:
-        raise ValueError("items should be an int but is currently "
+        raise ValueError("items should usable as an int but is currently "
                          "'{}' of type '{}'".format(items, type(items)))
     if items < 0:
         raise ValueError(ww.f("items is {items} but should be greater than 0"))
 
+    i = 0
     for i, item in zip(range(items), iterable):
         yield item
 
@@ -314,3 +331,24 @@ def lasts(iterable, items=1, default=None):
 
     for y in last_items:
         yield y
+
+# reduce is technically the last value of accumulate
+# use ww.utils.EMPTY instead of EMPTY
+# Put in the doc than scan=fold=accumulare and reduce=accumulate
+# replace https://docs.python.org/3/library/itertools.html#itertools.accumulate
+# that works only on Python 3.3 and doesn't have echo_start
+# def accumulate(func, iterable, start=ww.utils.EMPTY, *, echo_start=True):
+#     """
+#     Scan higher-order function.
+#     The first 3 positional arguments are alike to the ``functools.reduce``
+#     signature. This function accepts an extra optional ``echo_start``
+#     parameter that controls whether the first value should be in the output.
+#     """
+#     it = iter(iterable)
+#     if start is ww.utils._EMPTY:
+#         start = next(it)
+#     if echo_start:
+#         yield start
+#     for item in it:
+#         start = func(start, item)
+# yield start

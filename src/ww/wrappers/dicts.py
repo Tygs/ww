@@ -2,6 +2,12 @@
 
 # TODO: pretty print method
 
+# TODO:
+# foo = 1
+# bar = 2
+# d.from_vars('foo', 'bar')
+# {'foo': 1, 'bar': 2}
+
 import ww
 
 try:

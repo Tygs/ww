@@ -2,8 +2,18 @@
 
 import ww
 
-
+# TODO: ease creation of multi dimensional array
 # TODO: allow subclass to chose the string class
+# TODO, implement most  list methods as wrappers:
+# 'clear' => chainable
+# 'copy' => make sure we wrap
+# 'insert' => make it chainable
+# 'remove', => chainable, error tolerant
+# 'reverse' and sort() => chainable
+# TODO: list.build(*dimensions, default=value) as a wrapper for data.matrix
+# TODO: similar things for sets, bytes,
+
+
 class ListWrapper(list):
 
     @property

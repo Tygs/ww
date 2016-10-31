@@ -138,25 +138,100 @@ from six import with_metaclass
 
 import ww
 from ww.tools.strings import multisplit, multireplace
-from ww.types import unicode, str_istr, str_istr_icallable, C, I  # noqa
+from ww.types import Union, unicode, str_istr, str_istr_icallable, C, I  # noqa
 
 # TODO: make sure we copy all methods from str but return s()
 
 FORMATTER = LiteralFormatter()
 
 
+# TODO: s >> should do s().strip().dedent().fold()
 class MetaS(type):
-    """ Allow s >> 'text' as a shortcut to dedent strings """
+    """ Allow s >> 'text' as a shortcut to dedent strings
+
+        This is not something you should use directly. It's a metaclass
+        for s() StringWrapper objects and is used to override the
+        operator >> on the StringWrapper class (not the object).
+    """
 
     def __rshift__(self, other):
+        """ Let you do s >> "a string" as a shortcut to s("a string").dedent()
+
+            s is the class, not s(), which would be an instance.
+
+            Args:
+                other: the string at the right of the '>>' operator.
+
+            Returns:
+                The dedented string as wrapped in StringWrapper. Right now
+                we always return StringWrapper, so subclassing won't work
+                if you want to override this.
+
+            Raises:
+                TypeError: if you try to apply it on non strings.
+
+            Example:
+
+                >>> from ww import s
+                >>> print(s >> '''
+                ...     This should be indented
+                ...     but it will not be
+                ... ''')
+                <BLANKLINE>
+                This should be indented
+                but it will not be
+                <BLANKLINE>
+        """
+        # type (str) -> StringWrapper
+
         # TODO: figure out how to allow this to work with subclasses
         return StringWrapper(dedent(other))
 
 
 class MetaF(type):
-    """ Allow f >> 'text' as a shortcut to dedent f-string """
+    """ Allow f >> 'text' as a shortcut to dedent f-like-strings.
+
+        This is not something you should use directly. It's a metaclass
+        for s() StringWrapper objects and is used to override the
+        operator >> on the StringWrapper class (not the object).
+
+        This is the same as MetaS, but it wraps the string in f(), not in
+        s(), meaning you can use the f-string compatible syntax inside
+        the string you wish to dedent.
+    """
 
     def __rshift__(self, other):
+        """ Let you do f >> "a string" as a shortcut to f("a string").dedent()
+
+            f is the class, not f(), which would be an instance.
+
+            Args:
+                other: the string at the right of the '>>' operator.
+
+            Returns:
+                The dedented string as wrapped in StringWrapper. Right now
+                we always return StringWrapper, so subclassing won't work
+                if you want to override this.
+
+            Raises:
+                TypeError: if you try to apply it on non strings.
+
+            Example:
+
+                >>> from ww import f
+                >>> var = "foo"
+                >>> print(f >> '''
+                ...     This should be indented
+                ...     but it will not be.
+                ...     And you can use {var}.
+                ... ''')
+                <BLANKLINE>
+                This should be indented
+                but it will not be.
+                And you can use foo.
+                <BLANKLINE>
+        """
+        # type (str) -> StringWrapper
         caller_frame = inspect.currentframe().f_back
         caller_globals = caller_frame.f_globals
         caller_locals = caller_frame.f_locals
@@ -167,6 +242,8 @@ class MetaF(type):
         ))
 
 
+# TODO: add normalize() (removes special caracters) and slugify
+# (normalize + slug)
 # TODO: refactor methods to be only wrappers
 #       for functions from a separate module
 # TODO: override capitalize, title, upper, lower, etc
@@ -282,13 +359,49 @@ class StringWrapper(with_metaclass(MetaF, unicode)):  # type: ignore
         res = multireplace(self, patterns, substitutions, maxreplace, flags)
         return self.__class__(res)
 
+    # TODO: add a "strip_white_ends" and "remove_lone_linebreaks" param
     def dedent(self):
+        # type: (...) -> StringWrapper
+        """ Call texwrap.deden() on the string, removing useless indentation
+
+            Example:
+
+                >>> from ww import s
+                >>> print(s('''
+                ...     This should be indented
+                ...     but it will not be
+                ... ''').dedent())
+                <BLANKLINE>
+                This should be indented
+                but it will not be
+                <BLANKLINE>
+        """
         return self.__class__(dedent(self))
 
     def upper(self):
+        # type: (...) -> StringWrapper
+        """ Call str.upper() on the string, making it uppercase.
+
+            Example:
+
+                >>> print(s('Foo').upper())
+                FOO
+        """
         return self.__class__(unicode.upper(self))
 
+    # TODO: add the same features as getitems on g()
     def __getitem__(self, index):
+        # type: (Union[int, slice]) -> StringWrapper
+        """ Makde indexing/slicing return s() objects.
+
+            Example:
+
+                >>> s('Foo')[0]
+                u'F'
+                >>> type(s('Foo')[0])
+                <class 'ww.wrappers.strings.StringWrapper'>
+        """
+
         return self.__class__(unicode.__getitem__(self, index))
 
     def __add__(self, other):
