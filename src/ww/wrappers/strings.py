@@ -248,7 +248,7 @@ class MetaF(type):
 #       for functions from a separate module
 # TODO: override capitalize, title, upper, lower, etc
 # TODO: inherit from BaseWrapper
-class StringWrapper(with_metaclass(MetaF, unicode)):  # type: ignore
+class StringWrapper(with_metaclass(MetaS, unicode)):  # type: ignore
 
     # TODO: allow subclasses to choose iterable wrapper classes
 
@@ -384,6 +384,7 @@ class StringWrapper(with_metaclass(MetaF, unicode)):  # type: ignore
 
             Example:
 
+                >>> from ww import s
                 >>> print(s('Foo').upper())
                 FOO
         """
@@ -396,6 +397,7 @@ class StringWrapper(with_metaclass(MetaF, unicode)):  # type: ignore
 
             Example:
 
+                >>> from ww import s
                 >>> s('Foo')[0]
                 u'F'
                 >>> type(s('Foo')[0])
@@ -404,8 +406,37 @@ class StringWrapper(with_metaclass(MetaF, unicode)):  # type: ignore
 
         return self.__class__(unicode.__getitem__(self, index))
 
+    # TODO: override '/' so that it does like '+' but autocast.
     def __add__(self, other):
-        return self.__class__('{}{}').format(self, other)
+        # type: (str) -> StringWrapper
+        """ Concatenate the 2 strings, but wraps it in s().
+
+            Args:
+                other: The other string to concatenate with the current one.
+
+            Example:
+
+                >>> from ww import s
+                >>> s('a') + 'b'
+                u'ab'
+        """
+        return self.__class__(str.__add__(str(self), other))
+
+    def __radd__(self, other):
+        # type: (str) -> StringWrapper
+        """ Concatenate the 2 strings, s() being on the right of the equation.
+
+            Args:
+                other: The other string to concatenate with the current one.
+
+            Example:
+
+                >>> from ww import s
+                >>> 'b' + s('a')
+                u'ba'
+
+        """
+        return self.__class__(str.__add__(other, str(self)))
 
     def join(self, iterable, formatter=lambda s, t: t.format(s),
              template="{}"):
@@ -459,9 +490,6 @@ class StringWrapper(with_metaclass(MetaF, unicode)):  # type: ignore
     if six.PY3:  # we want unified representation between versions
         def __repr__(self):
             return 'u{}'.format(super(StringWrapper, self).__repr__())
-
-# shortcut from StringWrapper
-s = StringWrapper
 
 
 # TODO: make sure each class call self._class instead of s(), g(), etc
