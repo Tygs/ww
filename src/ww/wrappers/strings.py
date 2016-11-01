@@ -128,6 +128,8 @@ from textwrap import dedent
 import six
 import chardet
 
+from future.utils import raise_from
+
 try:
     from formatizer import LiteralFormatter
     FORMATTER = LiteralFormatter()
@@ -406,7 +408,7 @@ class StringWrapper(with_metaclass(MetaS, unicode)):  # type: ignore
 
         return self.__class__(unicode.__getitem__(self, index))
 
-    # TODO: override '/' so that it does like '+' but autocast.
+    # TODO: override '//' so that it does like '+' but autocast.
     def __add__(self, other):
         # type: (str) -> StringWrapper
         """ Concatenate the 2 strings, but wraps it in s().
@@ -420,7 +422,40 @@ class StringWrapper(with_metaclass(MetaS, unicode)):  # type: ignore
                 >>> s('a') + 'b'
                 u'ab'
         """
-        return self.__class__(str.__add__(str(self), other))
+
+        # forbid concatenation with bytes, even in Python 2.
+        if isinstance(other, bytes):
+            raise TypeError(ww.s >> """
+                The string "{!r}" and the bytes "{!r}" cannot be
+                concatenated. You need to decode the bytes to convert them to
+                a string first. One way to do it is to call the decode() method.
+
+                Example:
+
+                    text_as_string = text_as_bytes.decode(text_encoding)
+
+                If you don't know what encoding to use, try 'utf8', and if
+                it doesn't work, google the `chardet` Python module as it can
+                help you to detect it.
+
+                Remember that in Python 2.7, bytes are confusingly
+                called 'str', and strings are called 'unicode'.
+            """.format(self, other))
+
+        str_self = str(self)  # for p2.7 compat
+
+        try:
+            str_res = str.__add__(str_self, other)
+        except TypeError as e:
+            raise_from(e.__class__(ww.s >> """
+                You can't concatenate a string ({!r}) with an object of
+                type {} ({!r}).
+                Python won't guess how to convert it for you, you need to
+                manually do it. The most common way to do so is to call s()
+                on it.
+            """.format(self, type(other), other)), e)
+
+        return self.__class__(str_res)
 
     def __radd__(self, other):
         # type: (str) -> StringWrapper
@@ -436,7 +471,40 @@ class StringWrapper(with_metaclass(MetaS, unicode)):  # type: ignore
                 u'ba'
 
         """
-        return self.__class__(str.__add__(other, str(self)))
+
+        # forbid concatenation with bytes, even in Python 2.
+        if isinstance(other, bytes):
+            raise TypeError(ww.s >> """
+                The string "{!r}" and the bytes "{!r}" cannot be
+                concatenated. You need to decode the bytes to convert them to
+                a string first. One way to do it is to call the decode() method.
+
+                Example:
+
+                    text_as_string = text_as_bytes.decode(text_encoding)
+
+                If you don't know what encoding to use, try 'utf8', and if
+                it doesn't work, google the `chardet` Python module as it can
+                help you to detect it.
+
+                Remember that in Python 2.7, bytes are confusingly
+                called 'str', and strings are called 'unicode'.
+            """.format(self, other))
+
+        str_self = str(self)  # for p2.7 compat
+
+        try:
+            str_res = str.__add__(other, str_self)
+        except TypeError as e:
+            raise_from(e.__class__(ww.s >> """
+                You can't concatenate a string ({!r}) with an object of
+                type {} ({!r}).
+                Python won't guess how to convert it for you, you need to
+                manually do it. The most common way to do so is to call s()
+                on it.
+            """.format(self, type(other), other)), e)
+
+        return self.__class__(str_res)
 
     def join(self, iterable, formatter=lambda s, t: t.format(s),
              template="{}"):
@@ -492,6 +560,7 @@ class StringWrapper(with_metaclass(MetaS, unicode)):  # type: ignore
             return 'u{}'.format(super(StringWrapper, self).__repr__())
 
 
+# TODO: make a BIG WARNING stating that fstring as wrappers are dangerous
 # TODO: make sure each class call self._class instead of s(), g(), etc
 class FStringWrapper(with_metaclass(MetaF)):  # type: ignore
 
