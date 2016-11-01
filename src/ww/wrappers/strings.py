@@ -337,7 +337,7 @@ class StringWrapper(with_metaclass(MetaS, unicode)):  # type: ignore
                         - 'l' for re.LOCALE
 
             Returns:
-                The string with replaced bits.
+                The string with replaced bits, wrapped with StringWrapper.
 
             Raises:
                 ValueError: if you pass the wrong number of substitution.
@@ -364,7 +364,10 @@ class StringWrapper(with_metaclass(MetaS, unicode)):  # type: ignore
     # TODO: add a "strip_white_ends" and "remove_lone_linebreaks" param
     def dedent(self):
         # type: (...) -> StringWrapper
-        """ Call texwrap.deden() on the string, removing useless indentation
+        """ Call texwrap.dedent() on the string, removing useless indentation
+
+            Returns:
+                The strings without indentation and wrapped with StringWrapper.
 
             Example:
 
@@ -384,18 +387,30 @@ class StringWrapper(with_metaclass(MetaS, unicode)):  # type: ignore
         # type: (...) -> StringWrapper
         """ Call str.upper() on the string, making it uppercase.
 
+            Returns:
+                The upper cased string, wrapped in StringWrapper.
+
             Example:
 
                 >>> from ww import s
                 >>> print(s('Foo').upper())
                 FOO
+                >>> type(s('Foo').upper())
+                <class 'ww.wrappers.strings.StringWrapper'>
         """
         return self.__class__(unicode.upper(self))
 
     # TODO: add the same features as getitems on g()
     def __getitem__(self, index):
         # type: (Union[int, slice]) -> StringWrapper
-        """ Makde indexing/slicing return s() objects.
+        """ Make indexing/slicing return s() objects.
+
+            Returns:
+                The result of the indexing/slicing, wrapped in StringWrapper
+
+            Raises:
+                IndexError: if the index if greater than the string length.
+                TypeError: if the index is not an integer.
 
             Example:
 
@@ -416,11 +431,20 @@ class StringWrapper(with_metaclass(MetaS, unicode)):  # type: ignore
             Args:
                 other: The other string to concatenate with the current one.
 
+            Raises:
+                TypeError: raised one of the concatenated objects is not
+                           a string.
+
+            Returns:
+                The concatenated string wrapped in StringWrapper.
+
             Example:
 
                 >>> from ww import s
-                >>> s('a') + 'b'
+                >>> s(u'a') + u'b'
                 u'ab'
+                >>> type(s(u'a') + u'b')
+                <class 'ww.wrappers.strings.StringWrapper'>
         """
 
         # forbid concatenation with bytes, even in Python 2.
@@ -428,7 +452,8 @@ class StringWrapper(with_metaclass(MetaS, unicode)):  # type: ignore
             raise TypeError(ww.s >> """
                 The string "{!r}" and the bytes "{!r}" cannot be
                 concatenated. You need to decode the bytes to convert them to
-                a string first. One way to do it is to call the decode() method.
+                a string first. One way to do it is to call the decode()
+                method.
 
                 Example:
 
@@ -442,10 +467,10 @@ class StringWrapper(with_metaclass(MetaS, unicode)):  # type: ignore
                 called 'str', and strings are called 'unicode'.
             """.format(self, other))
 
-        str_self = str(self)  # for p2.7 compat
+        str_self = unicode(self)  # for p2.7 compat
 
         try:
-            str_res = str.__add__(str_self, other)
+            str_res = unicode.__add__(str_self, other)
         except TypeError as e:
             raise_from(e.__class__(ww.s >> """
                 You can't concatenate a string ({!r}) with an object of
@@ -464,12 +489,20 @@ class StringWrapper(with_metaclass(MetaS, unicode)):  # type: ignore
             Args:
                 other: The other string to concatenate with the current one.
 
+            Raises:
+                TypeError: raised one of the concatenated objects is not
+                           a string.
+
+            Returns:
+                The concatenated string wrapped in StringWrapper.
+
             Example:
 
                 >>> from ww import s
-                >>> 'b' + s('a')
+                >>> u'b' + s(u'a')
                 u'ba'
-
+                >>> type(u'b' + s(u'a'))
+                <class 'ww.wrappers.strings.StringWrapper'>
         """
 
         # forbid concatenation with bytes, even in Python 2.
@@ -477,7 +510,8 @@ class StringWrapper(with_metaclass(MetaS, unicode)):  # type: ignore
             raise TypeError(ww.s >> """
                 The string "{!r}" and the bytes "{!r}" cannot be
                 concatenated. You need to decode the bytes to convert them to
-                a string first. One way to do it is to call the decode() method.
+                a string first. One way to do it is to call the decode()
+                method.
 
                 Example:
 
@@ -491,10 +525,10 @@ class StringWrapper(with_metaclass(MetaS, unicode)):  # type: ignore
                 called 'str', and strings are called 'unicode'.
             """.format(self, other))
 
-        str_self = str(self)  # for p2.7 compat
+        str_self = unicode(self)  # for p2.7 compat
 
         try:
-            str_res = str.__add__(other, str_self)
+            str_res = unicode.__add__(other, str_self)
         except TypeError as e:
             raise_from(e.__class__(ww.s >> """
                 You can't concatenate a string ({!r}) with an object of
