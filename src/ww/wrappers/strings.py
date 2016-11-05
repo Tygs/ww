@@ -1,9 +1,12 @@
 # coding: utf-8
 
 """
-    StringWrapper is a convenient wrapper around strings. It behaves
-    like unicode strings (the API is compatible), but make small improvements
-    to the existing methods and add some new methods.
+    ww contains convenient wrappers around strings. The Most important one is
+    StringWrapper, that you will mostly use as the "s()" object.
+
+    It behaves like unicode strings (the API is compatible),
+    but make small improvements to the existing methods and add some new
+    methods.
 
     It doesn't accept bytes as an input. If you do so and it works, you must
     know it's not a supported behavior and may change in the future. Only
@@ -95,7 +98,14 @@
             But we have only 1 for now.
             <BLANKLINE>
 
-        There is much, much more...
+        .. warning::
+
+           Remember that, while f-strings are interpreted at parsing time,
+           our implementation is executed at run-time, making it vulnerable
+           to code injection. This makes it a dangerous feature to put in
+           production.
+
+        There is much, much more to play with. Check it out :)
 
     You'll find bellow the detailed documentation for each method of
     StringWrapper. Go have a look, there is some great stuff here!
@@ -158,6 +168,7 @@ class MetaS(type):
     """
 
     def __rshift__(self, other):
+        # type (str) -> StringWrapper
         """ Let you do s >> "a string" as a shortcut to s("a string").dedent()
 
             s is the class, not s(), which would be an instance.
@@ -185,8 +196,6 @@ class MetaS(type):
                 but it will not be
                 <BLANKLINE>
         """
-        # type (str) -> StringWrapper
-
         # TODO: figure out how to allow this to work with subclasses
         return StringWrapper(dedent(other))
 
@@ -201,9 +210,17 @@ class MetaF(type):
         This is the same as MetaS, but it wraps the string in f(), not in
         s(), meaning you can use the f-string compatible syntax inside
         the string you wish to dedent.
+
+        .. warning::
+
+           Remember that, while f-strings are interpreted at parsing time,
+           our implementation is executed at run-time, making it vulnerable
+           to code injection. This makes it a dangerous feature to put in
+           production.
     """
 
     def __rshift__(self, other):
+        # type (str) -> StringWrapper
         """ Let you do f >> "a string" as a shortcut to f("a string").dedent()
 
             f is the class, not f(), which would be an instance.
@@ -233,8 +250,14 @@ class MetaF(type):
                 but it will not be.
                 And you can use foo.
                 <BLANKLINE>
+
+            .. warning::
+
+               Remember that, while f-strings are interpreted at parsing
+               time, our implementation is executed at run-time, making it
+               vulnerable to code injection. This makes it a dangerous feature
+               to put in production.
         """
-        # type (str) -> StringWrapper
         caller_frame = inspect.currentframe().f_back
         caller_globals = caller_frame.f_globals
         caller_locals = caller_frame.f_locals
@@ -252,7 +275,35 @@ class MetaF(type):
 # TODO: override capitalize, title, upper, lower, etc
 # TODO: inherit from BaseWrapper
 class StringWrapper(with_metaclass(MetaS, unicode)):  # type: ignore
+    """
+        Convenience wrappers around strings behaving like unicode strings, but
+        make small improvements to the existing methods and add some new
+        methods.
 
+        It doesn't accept bytes as an input. If you do so and it works, you
+        must know it's not a supported behavior and may change in the future.
+        Only pass:
+
+        - unicode objects in Python 2;
+        - str objects in Python 3.
+
+        Basic usages::
+
+            >>> from ww import s
+            >>> string = s("this is a test")
+            >>> string
+            u'this is a test'
+            >>> type(string)
+            <class 'ww.wrappers.strings.StringWrapper'>
+            >>> string.upper() # regular string methods are all there
+            u'THIS IS A TEST'
+            >>> string[:4] + "foo" # same behaviors you expect from a string
+            u'thisfoo'
+            >>> string.split(u'a', u'i', u'e')  # lots of features are improved
+            <IterableWrapper generator>
+            >>> string.split(u'a', u'i', u'e').list()
+            [u'th', u's ', u's a t', u'st']
+    """
     # TODO: allow subclasses to choose iterable wrapper classes
 
     # TODO: check for bytes in __new__. Say we don't accept it and recommand
@@ -738,8 +789,55 @@ class StringWrapper(with_metaclass(MetaS, unicode)):  # type: ignore
 # TODO: make a BIG WARNING stating that fstring as wrappers are dangerous
 # TODO: make sure each class call self._class instead of s(), g(), etc
 class FStringWrapper(with_metaclass(MetaF)):  # type: ignore
+    """
+        Factory to create StringWrapper objects, but with f-string like
+        capabilities.
 
+        Usage::
+
+            >>> from ww import f  # or from ww import FStringWrapper
+            >>> name = 'Foo'
+            >>> type(f('My name is {name}'))
+            <class 'ww.wrappers.strings.StringWrapper'>
+            >>> print(f('My name is {name}'))
+            My name is Foo
+            >>> print(f >> '''
+            ...     Dedent also works.
+            ...     See: {name}
+            ... ''')
+            <BLANKLINE>
+            Dedent also works.
+            See: Foo
+            <BLANKLINE>
+
+        Since it returns a Strings wrapper, you can then look up s()
+        documentation for the rest of what you can do.
+
+        .. warning::
+
+           Remember that, while f-strings are interpreted at parsing time,
+           our implementation is executed at run-time, making it vulnerable
+           to code injection. This makes it a dangerous feature to put
+           in production.
+    """
     def __new__(cls, string):
+        # type: (str) -> StringWrapper
+        """ Create a new s() object, formating it using the current context.
+
+            Args:
+
+                string: the string format.
+
+            Returns:
+                A formatted StringWrapper instance.
+
+            Example:
+
+                >>> from ww import f
+                >>> name = 'Foo'
+                >>> print(f('My name is {name}'))
+                My name is Foo
+        """
         caller_frame = inspect.currentframe().f_back
         caller_globals = caller_frame.f_globals
         caller_locals = caller_frame.f_locals
