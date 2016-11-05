@@ -140,7 +140,8 @@ from six import with_metaclass
 
 import ww
 from ww.tools.strings import multisplit, multireplace
-from ww.types import Union, unicode, str_istr, str_istr_icallable, C, I  # noqa
+from ww.types import (Union, unicode, str_istr, str_istr_icallable,  # noqa
+                      C, I, Iterable, Callable, Any)
 
 # TODO: make sure we copy all methods from str but return s()
 
@@ -542,15 +543,93 @@ class StringWrapper(with_metaclass(MetaS, unicode)):  # type: ignore
 
     def join(self, iterable, formatter=lambda s, t: t.format(s),
              template="{}"):
+        # type: (Iterable, Callable, str) -> ww.s.StringWrapper
+        """ Join every item of the iterable into a string.
+
+            This is just like the `join()` method on `str()` but with
+            auto cast to a string. If you dislike auto cast, `formatter` and
+            `template` let you control how to format each element.
+
+            Args:
+                iterable: the iterable with elements you wish to join.
+
+                formatter: a the callable returning a representation of the
+                           current element as a string. It will be called on
+                           each element, with the element being past as the
+                           first parameter and the value of `template` as the
+                           second parameter.
+                           The default value is to return::
+
+                               template.format(element)
+
+                template: a string template using the .format() syntax to be
+                          used by the formatter callable.
+                          The default value is "{}", so that the formatter can
+                          just return::
+
+                                "{}".format(element)
+
+
+            Returns:
+                The joined elements as StringWrapper
+
+            Example:
+
+                >>> from ww import s
+                >>> s('|').join(range(3))
+                u'0|1|2'
+                >>> to_string = lambda s, t: str(s) * s
+                >>> print(s(',').join(range(1, 4), formatter=to_string))
+                1,22,333
+                >>> print(s('\\n').join(range(3), template='- {}'))
+                - 0
+                - 1
+                - 2
+
+        """
         formatted_iterable = (formatter(st, template) for st in iterable)
         return self.__class__(unicode.join(self, formatted_iterable))
 
     @classmethod
     def from_bytes(cls, byte_string, encoding=None, errors='strict'):
+        # type: (bytes, str, str) -> ww.s.StringWrapper
+        u""" Convenience proxy to byte.decode().
+
+            This let you decode bytes from the StringWrapper class the
+            same way you would decode it from the bytes class, and
+            wraps the result in StringWrapper.
+
+            Args:
+                byte_string: encoded text you wish to decode.
+
+                encoding: the name of the character set you want to use
+                          to attempt decoding.
+
+                errors: the policy to use when encountering error while trying
+                        to decode the text. 'strict', the default, will raise
+                        an exception.  'ignore' will skip the faulty bits.
+                        'replace' will replace them with '?'.
+
+            Returns:
+                The decoded strings wrapped in StringWrapper.
+
+            Example:
+
+                >>> from ww import s
+                >>> utf8_text = u'Père Noël'.encode('utf8')
+                >>> print(s.from_bytes(utf8_text, 'utf8'))
+                Père Noël
+                >>> type(s.from_bytes(utf8_text, 'utf8'))
+                <class 'ww.wrappers.strings.StringWrapper'>
+                >>> print(s.from_bytes(utf8_text, 'ascii', 'replace'))
+                P��re No��l
+                >>> print(s.from_bytes(utf8_text, 'ascii', 'ignore'))
+                Pre Nol
+        """
         if encoding is None:
             encoding = chardet.detect(byte_string)['encoding']
             # TODO: strip() and ignore first line ?
-            raise ValueError(FStringWrapper >> """
+            raise ValueError(ww.f >> """
                              from_bytes() expects a second argument:
                              'encoding'. If you don't know which encoding,
                              try '{encoding}' or 'utf8'. If it fails and you
@@ -562,13 +641,73 @@ class StringWrapper(with_metaclass(MetaS, unicode)):  # type: ignore
         return cls(byte_string.decode(encoding, errors=errors))
 
     def format(self, *args, **kwargs):
+        # type: (*Any, **Any) -> ww.s.StringWrapper
+        """ Like str.format(), with f-string features. Returns StringWrapper
+
+            s().format() is like str.format() (or unicode.format() in
+            Python 2.7), but returns a StringWrapper.
+
+            However, if you don't pass any argument to it, it will act like
+            f-strings, and look for the variables from the current local
+            context to fill in the markers.
+
+            Args:
+
+                *args: elements used to replace {} markers.
+                **kwargs: named element used to replace {name} markers.
+
+            Returns:
+                The formatted string, wrapped in StringWrapper
+
+            Example:
+
+                >>> from ww import s
+                >>> print(s('Dis ize me, {} !').format('Mario'))
+                Dis ize me, Mario !
+                >>> name = 'Mario'
+                >>> print(s('Dis ize me, {name} !').format())
+                Dis ize me, Mario !
+        """
+        # TODO: check that globals are accessible
         if not args and not kwargs:
             pframe = inspect.currentframe().f_back
             return self.__class__(unicode.format(self, **pframe.f_locals))
         return self.__class__(unicode.format(self, *args, **kwargs))
 
     # TODO: i18n
+    # todo: rename to 'as_bool'
     def to_bool(self, default=None):
+        # type: (Any) -> bool
+        """ Take a string with a binary meaning, and turn it into a boolean.
+
+            The following strings will be converted:
+
+                - '1' => True,
+                - '0' => False,
+                - 'true' => True,
+                - 'false' => False,
+                - 'on' => True,
+                - 'off' => False,
+                - 'yes' => True,
+                - 'no' => False,
+                - '' => False
+
+            Args:
+
+                default: the value to return if the string can't be
+                         converted.
+
+            Returns:
+                A boolean matching the meaning of the string.
+
+            Example:
+
+                >>> from ww import s
+                >>> s('true').to_bool()
+                True
+                >>> s('Off').to_bool()
+                False
+        """
         try:
             return {
                 '1': True,
@@ -580,17 +719,19 @@ class StringWrapper(with_metaclass(MetaS, unicode)):  # type: ignore
                 'yes': True,
                 'no': False,
                 '': False
-            }[self.casefold()]
+            }[self.lower()]  # TODO: normalize + strip()
         except KeyError:
             if default is not None:
                 return default
-            raise ValueError(FStringWrapper >> """
+            raise ValueError(ww.f >> """
                              '{vals!r}' cannot be converted to a boolean. Clean
                              your input or set the 'default' parameter to True
                              or False.
                              """)
-    if six.PY3:  # we want unified representation between versions
+
+    if six.PY3:
         def __repr__(self):
+            """ Strings repr always prefixeds with 'u' even in Python 3 """
             return 'u{}'.format(super(StringWrapper, self).__repr__())
 
 

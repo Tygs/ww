@@ -669,7 +669,7 @@ class IterableWrapper(BaseWrapper):
         return self.__class__(new)
 
     def join(self, joiner, formatter=lambda s, t: t.format(s), template="{}"):
-        # type: (Iterable, Callable, str) -> ww.s.StringWrapper
+        # type: (str, Callable, str) -> ww.s.StringWrapper
         """ Join every item of the iterable into a string.
             This is just like the `join()` method on `str()`, but conveniently
             stored on the iterable itself.
@@ -679,9 +679,9 @@ class IterableWrapper(BaseWrapper):
                 >>> from ww import g
                 >>> g(range(3)).join('|')
                 u'0|1|2'
-                >>> print(g(range(3)).join('~~',\
-                    formatter=lambda s, t: '"{}"'.format(t.format(s))))
-                "0"~~"1"~~"2"
+                >>> to_string = lambda s, t: str(s) * s
+                >>> print(g(range(1, 4)).join(',', formatter=to_string))
+                1,22,333
                 >>> print(g(range(3)).join('\\n', template='- {}'))
                 - 0
                 - 1
