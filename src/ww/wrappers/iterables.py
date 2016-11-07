@@ -162,7 +162,7 @@
 # TODO: get(item, default) that does try g[item] except IndexError: default
 # https://docs.python.org/3/library/itertools.html#itertools-recipes
 
-# WARNING: do not import unicode_literals, as it makes docstrings containins
+# WARNING: do not import unicode_literals, as it makes docstrings containing
 # strings fail on python2
 from __future__ import (absolute_import, division, print_function)
 
@@ -170,13 +170,6 @@ import itertools
 
 from ww.types import Any, Union, Callable, Iterable  # noqa
 from ww.utils import renamed_argument
-
-try:  # Aliases for Python 2
-    from itertools import imap, izip, ifilter  # type: ignore noqa
-except ImportError:
-    imap = map
-    izip = zip
-    ifilter = filter
 
 import builtins
 
@@ -490,7 +483,7 @@ class IterableWrapper(BaseWrapper):
                 ['0', '1', '2']
 
         """
-        return self.__class__(imap(callable, self.iterator))
+        return self.__class__(builtins.map(callable, self.iterator))
 
     def zip(self, *others):
         # type: (*Iterable) -> IterableWrapper
@@ -513,7 +506,7 @@ class IterableWrapper(BaseWrapper):
                 1 b False
                 2 c None
         """
-        return self.__class__(izip(self.iterator, *others))
+        return self.__class__(builtins.zip(self.iterator, *others))
 
     # TODO: add filter so we can do the filter(bool) trick
 
