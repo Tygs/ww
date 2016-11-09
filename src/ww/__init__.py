@@ -1,6 +1,6 @@
 
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 
 from .wrappers.iterables import IterableWrapper as g  # noqa
 from .wrappers.strings import StringWrapper as s, FStringWrapper as f  # noqa
