@@ -4,6 +4,7 @@
 import ww
 
 
+# TODO: inherit from BaseWrapper
 class TupleWrapper(tuple):
     @property
     def len(self):
@@ -54,6 +55,7 @@ class TupleWrapper(tuple):
         """
         return ww.l(self)
 
+    # TODO: rename this method to dict()
     def to_d(self):
         """
         Args: self
@@ -67,12 +69,33 @@ class TupleWrapper(tuple):
             TypeError: cannot convert dictionary update sequence element
             #index to a sequence
         """
-        for i, x in enumerate(self):
-            if type(x) == int:
-                raise TypeError("cannot convert dictionary update sequence "
-                                "element #{} to a sequence".format(i))
-            elif len(x) != 2:
-                raise ValueError(("dictionary update sequence element #{0} "
-                                 "has length {1}; 2 is required")
-                                 .format(i, len(x)))
-        return ww.d(self)
+
+        try:
+            return ww.d(self)
+        except (TypeError, ValueError):
+
+            for i, element in enumerate(self):
+                try:
+                    iter(element)
+
+                # TODO: find out why we can't cover this branch. The code
+                # is tested but don't appear in coverage
+                except TypeError:  # pragma: no cover
+                    # TODO: use raise_from ?
+                    raise ValueError(("'{}' (position {}) is not iterable. You"
+                                      " can only create a dictionary from a "
+                                      "elements that are iterables, such as "
+                                      "tuples, lists, etc.")
+                                     .format(element, i))
+
+                try:
+                    size = len(element)
+                except TypeError:  # ignore generators, it's already consummed
+                    pass
+                else:
+                    raise ValueError(("'{}' (position {}) contains {} "
+                                      "elements. You can only create a "
+                                      "dictionary from iterables containing "
+                                      "2 elements.").format(element, i, size))
+
+            raise

@@ -1,6 +1,5 @@
 
 import re
-import sys
 import setuptools
 
 
@@ -38,9 +37,6 @@ def get_requirements(path):
 requirements, dep_links = get_requirements('requirements.txt')
 dev_requirements, dev_dep_links = get_requirements('dev-requirements.txt')
 
-if sys.version_info.major == 2:
-    dev_requirements.remove('mypy-lang')
-
 setuptools.setup(
     name='ww',
     version=get_version(),
@@ -68,6 +64,5 @@ setuptools.setup(
                  'Programming Language :: Python :: 3.3',
                  'Programming Language :: Python :: 3.4',
                  'Programming Language :: Python :: 3.5',
-                 'Management',
                  'Operating System :: OS Independent'],
 )

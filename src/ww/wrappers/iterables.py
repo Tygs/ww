@@ -7,7 +7,8 @@
     whatever you can apply a for loop to. And it will behave the same way
     regarding iteration.
 
-    It does not assume a size, it does not even assumes the iterable is finite.
+    It does not assume a size, it does not even assumes the iterable is
+    finite.
 
     When possible IterableWrapper tries to not hold data in memory, but some
     operations require it, so when in doubt, check the methods doc.
@@ -19,6 +20,20 @@
     iterable, providing better chaining, adding shorcuts to itertools,
     allowing slicing and more.
 
+    .. WARNING::
+
+        g() turns anything into a one-time chain of lazy generators. If you
+        want to keep the underlying behavior of your iterable, g() is not the
+        best choice. You can checkout l(), t(), s(), etc. for wrappers that
+        match g() API but keep the behavior of the matchined data structure.
+
+        However, g() has the advantage of working with ANY iterable, no matter
+        the type or the size. Most of its methods are lazy and return a new
+        instance of g().
+
+        The other wrappers are specialized and try to mimic the behavior of
+        one particular type: l() for lists, t() for tuples, s() for strings...
+
     Example:
 
         Import::
@@ -29,8 +44,8 @@
 
             >>> from ww.wrappers.iterables import IterableWrapper
 
-        `g` is just an alias of IterableWrapper, but it's what most people will
-        want to use most of the time. Hence it's what we will use in the
+        `g` is just an alias of IterableWrapper, but it's what most people
+        will want to use most of the time. Hence it's what we will use in the
         examples.
 
         `i` could have been a better alias for "iterable", but `i` is used
@@ -64,7 +79,7 @@
         Itertools at your fingertips::
 
             >>> gen = g(x * x for x in range(10))
-            >>> gen.groupby(lambda x: x % 2).list() # autosort and cast groups
+            >>> gen.groupby(lambda x: x % 2).list() # autosort & cast groups
             [(0, (0, 4, 16, 36, 64)), (1, (1, 9, 25, 49, 81))]
             >>> a, b = g(range(3)).tee(2)
             >>> a.list()
@@ -80,6 +95,11 @@
             0
             >>> next(gen)
             1
+
+        .. WARNING::
+
+            You can use indexing on g() like you would on list()
+
 
         Operators to the rescue:
 
@@ -137,26 +157,21 @@
 
 # TODO stuff returning a strings in g() would be an s() object
 # TODO: add features from
+# TODO: support numpy slicing style
+# TODO: support numpy filtering style
 # TODO: get(item, default) that does try g[item] except IndexError: default
 # https://docs.python.org/3/library/itertools.html#itertools-recipes
 
-# WARNING: do not import unicode_literals, as it makes docstrings containins
+# WARNING: do not import unicode_literals, as it makes docstrings containing
 # strings fail on python2
 from __future__ import (absolute_import, division, print_function)
 
 import itertools
 
-try:  # Python 2 doesn't have those imports
-    from typing import Any, Union, Callable, Iterable  # noqa
-except ImportError:
-    pass
+from collections import Iterable as IterableAbc, Iterator
 
-try:  # Aliases for Python 2
-    from itertools import imap, izip, ifilter  # type: ignore noqa
-except ImportError:
-    imap = map
-    izip = zip
-    ifilter = filter
+from ww.types import Any, Union, Callable, Iterable, T, T2  # noqa
+from ww.utils import renamed_argument
 
 import builtins
 
@@ -174,155 +189,200 @@ from .base import BaseWrapper
 # TODO: merge minibelt
 
 
-class IterableWrapper(BaseWrapper):
+class IterableWrapper(Iterator, IterableAbc, BaseWrapper):
 
-    def __init__(self, iterable, *args):
+    def __init__(self, iterable, *more_iterables):
         # type: (Iterable, *Iterable) -> None
-        """Initialize self.iterator to iter(iterable)
+        """ Initialize self.iterator to iter(iterable)
 
-        If several iterables are passed, they are concatenated.
+            If several iterables are passed, they are concatenated.
 
-        Args:
-            iterable: iterable to use for the iner state.
-            *args: other iterable to concatenate to the first one.
+            Args:
+                iterable: iterable to use for the iner state.
+                *more_iterables: other iterable to concatenate to the
+                                 first one.
 
-        Example:
+            Returns:
+                None
 
-            >>> from ww import g
-            >>> g(range(3)).list()
-            [0, 1, 2]
-            >>> g(range(3), "abc").list()
-            [0, 1, 2, 'a', 'b', 'c']
-        """
-
-        if args:
-            iterable = itertools.chain(iterable, *args)
-        self.iterator = iter(iterable)
-        self._tee_called = False
-
-    def __iter__(self):
-        """Return the inner iterator
+            Raises:
+                TypeError: if some arguments are not iterable.
 
             Example:
 
-            >>> from ww import g
-            >>> gen = g(range(10))
-            >>> iter(gen) == gen.iterator
-            True
+                >>> from ww import g
+                >>> g(range(3)).list()
+                [0, 1, 2]
+                >>> g(range(3), "abc").list()
+                [0, 1, 2, 'a', 'b', 'c']
+        """
+
+        # Check early if all elements are indeed iterables so that
+        # they get an error now and not down the road while trying to
+        # process it.
+        for i, elem in enumerate((iterable, ) + more_iterables):
+            try:
+                iter(elem)
+            except TypeError:
+                raise TypeError(ww.s >> """
+                    Argument "{}" of type "{}" (in position {}) is
+                    not iterable. g() only accept iterables, meaning an object
+                    you can use a for loop on. You can check if an object is
+                    iterable by calling iter() on it (iterables don't raise
+                    a TypeError). Also, iterables usually have either an
+                    __iter__() method or a __len__() and __getitem__() method.
+                """.format(elem, type(elem), i))
+
+        self.iterator = iter(itertools.chain(iterable, *more_iterables))
+        self._tee_called = False
+
+    def __iter__(self):
+        """ Return the inner iterator
+
+            Example:
+
+                >>> from ww import g
+                >>> gen = g(range(10))
+                >>> iter(gen) == gen.iterator
+                True
+
+            Returns:
+                Inner iterator.
+
+            Raises:
+                RuntimeError: if trying call __iter__ after calling .tee()
         """
         if self._tee_called:
             raise RuntimeError("You can't iterate on a g object after g.tee "
                                "has been called on it.")
         return self.iterator
 
+    # TODO: type self, and stuff that returns things depending on self
     def next(self, default=None):
         # type: (Any) -> Any
-        """Call next() on inner iterable.
+        """ Call next() on inner iterable.
 
-        Args:
-            default: default value to return if there is no next item
-                     instead of raising StopIteration.
+            Args:
+                default: default value to return if there is no next item
+                         instead of raising StopIteration.
 
-        Example:
+            Example:
 
-            >>> from ww import g
-            >>> g(range(10)).next()
-            0
-            >>> g(range(0)).next("foo")
-            'foo'
+                >>> from ww import g
+                >>> g(range(10)).next()
+                0
+                >>> g(range(0)).next("foo")
+                'foo'
         """
         return next(self.iterator, default)
 
+    # alias for Python 2/3 compat
     __next__ = next
 
     def __add__(self, other):
         # type: (Iterable) -> IterableWrapper
-        """Return a generator that concatenates both generators.
+        """ Return a generator that concatenates both generators.
 
-        It uses itertools.chain(self, other_iterable).
+            It uses itertools.chain(self, other_iterable), so it works when
+            g() is on the left side of the addition.
 
-        Args:
-            other: The other generator to chain with the current one.
+            Args:
+                other: The other iterable to chain with the current one.
 
-        Example:
+            Returns:
+                IterableWrapper
 
-            >>> from ww import g
-            >>> list(g(range(3)) + "abc")
-            [0, 1, 2, 'a', 'b', 'c']
+            Example:
+
+                >>> from ww import g
+                >>> (g(range(3)) + "abc").list()
+                [0, 1, 2, 'a', 'b', 'c']
         """
         return self.__class__(itertools.chain(self.iterator, other))
 
     def __radd__(self, other):
         # type: (Iterable) -> IterableWrapper
-        """Return a generator that concatenates both generators.
+        """ Return a generator that concatenates both iterable.
 
-        It uses itertools.chain(other_iterable, self).
+            It uses itertools.chain(other_iterable, self), so it works when
+            g() is on the right side of the addition.
 
-        Args:
-            other: The other generator to chain with the current one.
+            Args:
+                other: The other generator to chain with the current one.
 
-        Example:
+            Example:
 
-            >>> from ww import g
-            >>> list("abc" + g(range(3)))
-            ['a', 'b', 'c', 0, 1, 2]
+                >>> from ww import g
+                >>> ("abc" + g(range(3))).list()
+                ['a', 'b', 'c', 0, 1, 2]
         """
         return self.__class__(itertools.chain(other, self.iterator))
 
     # TODO: allow non iterables
     def __sub__(self, other):
         # type: (Iterable) -> IterableWrapper
-        """Yield items that are not in the other iterable.
+        """ Yield items that are not in the other iterable.
 
-        The second iterable will be turned into a set so make sure:
-            - it has a finite size and can fit in memory.
-            - you are ok with it being consumed if it's a generator.
-            - it contains only hashable items.
+            .. DANGER::
+                The other iterable will be turned into a set. So make sure:
 
-        Args:
-            other: The iterable to filter from.
+                - it has a finite size and can fit in memory.
+                - you are ok with it being consumed if it's a generator.
+                - it contains only hashable items.
 
-        Example:
+            Args:
+                other: The iterable to filter from.
 
-            >>> from ww import g
-            >>> list(g(range(6)) - [1, 2, 3])
-            [0, 4, 5]
+            Example:
+
+                >>> from ww import g
+                >>> (g(range(6)) - [1, 2, 3]).list()
+                [0, 4, 5]
         """
         filter_from = set(ensure_tuple(other))
         return self.__class__(x for x in self.iterator if x not in filter_from)
 
+    # TODO: catch the exception when items are not hashable and raise
+    # a better more explicit error
     def __rsub__(self, other):
         # type: (Iterable) -> IterableWrapper
-        """Return a generator that concatenates both generators.
+        """ Yield items that are not in the other iterable.
 
-        It uses itertools.chain(other_iterable, self).
+            .. warning::
+                The other iterable will be turned into a set. So make sure:
 
-        Args:
-            other: The other generator to chain with the current one.
+                - it has a finite size and can fit in memory.
+                - you are ok with it being consumed if it's a generator.
+                - it contains only hashable items.
 
-        Example:
+            Args:
+                other: The other generator to chain with the current one.
 
-            >>> from ww import g
-            >>> list("abc" + g(range(3)))
-            ['a', 'b', 'c', 0, 1, 2]
+            Example:
+
+                >>> from ww import g
+                >>> (range(5) - g(range(3))).list()
+                [3, 4]
         """
         filter_from = set(self.iterator)
         return self.__class__(x for x in other if x not in filter_from)
 
     def __mul__(self, num):
         # type: (int) -> IterableWrapper
-        """Duplicate itself and concatenate the results.
+        """ Duplicate itself and concatenate the results.
 
-        Args:
-            other: The number of times to duplicate.
+            It's basically a shortcut for `g().chain(*g().tee())`.
 
-        Example:
+            Args:
+                num: The number of times to duplicate.
 
-            >>> from ww import g
-            >>> list(g(range(3)) * 3)
-            [0, 1, 2, 0, 1, 2, 0, 1, 2]
-            >>> list(2 * g(range(3)))
-            [0, 1, 2, 0, 1, 2]
+            Example:
+
+                >>> from ww import g
+                >>> (g(range(3)) * 3).list()
+                [0, 1, 2, 0, 1, 2, 0, 1, 2]
+                >>> (2 * g(range(3))).list()
+                [0, 1, 2, 0, 1, 2]
         """
         clones = itertools.tee(self.iterator, num)
         return self.__class__(itertools.chain(*clones))
@@ -331,19 +391,22 @@ class IterableWrapper(BaseWrapper):
 
     def tee(self, num=2):
         # type: (int) -> IterableWrapper
-        """Return copies of this generator.
+        """ Return copies of this generator.
 
-        Proxy to itertools.tee().
+            Proxy to itertools.tee().
 
-        Args:
-            other: The number of returned generators.
+           If you want to concatenate the results afterwards, use
+           g() * x instead of g().tee(x) which does that for you.
 
-        Example:
+            Args:
+                num: The number of returned generators.
 
-            >>> from ww import g
-            >>> a, b, c = g(range(3)).tee(3)
-            >>> [tuple(a), tuple(b), tuple(c)]
-            [(0, 1, 2), (0, 1, 2), (0, 1, 2)]
+            Example:
+
+                >>> from ww import g
+                >>> a, b, c = g(range(3)).tee(3)
+                >>> [tuple(a), tuple(b), tuple(c)]
+                [(0, 1, 2), (0, 1, 2), (0, 1, 2)]
         """
         cls = self.__class__
         gen = cls(cls(x) for x in itertools.tee(self.iterator, num))
@@ -353,45 +416,46 @@ class IterableWrapper(BaseWrapper):
     # TODO: allow negative end boundary
     def __getitem__(self, index):
         # type: (Union[int, slice, Callable]) -> Union[IterableWrapper, Any]
-        """Act like [x] or [x:y:z] on a generator. Warnings apply.
+        """ Act like [x] or [x:y:z] on a generator.
 
-        If you use an index instead of slice, you should know it WILL
-        consume the generator up to this index.
+            .. WARNING::
 
-        If you use a slice, it will return a generator.
+                If you pass an index, it will return the element at this index
+                as it would with any indexable. But it means that if your
+                iterable is a generator, it WILL be consumed immidiatly up
+                to that point.
 
-        If you want to keep the behavior of the underlying data structure,
-        don't use g(). Do it the usual way. g() will turn anything into a
-        one-time generator.
+                If you use a slice, it will return a generator and hence only
+                consume your iterable once you start reading it.
 
-        Args:
-            index: the index of the item to return, or a slice to apply to
-                   the iterable.
+            Args:
+                index: the index of the item to return, or a slice to apply to
+                       the iterable.
 
-        Raises:
-            IndexError: if the index is bigger than the iterable size.
+            Raises:
+                IndexError: if the index is bigger than the iterable size.
 
-        Example:
+            Example:
 
-            >>> from ww import g
-            >>> g(range(3))[1]
-            1
-            >>> g(range(3))[4]
-            Traceback (most recent call last):
-            ...
-            IndexError: Index "4" out of range
-            >>> g(range(100))[3:10].list()
-            [3, 4, 5, 6, 7, 8, 9]
-            >>> g(range(100))[3:].list() # doctest: +ELLIPSIS
-            [3, 4, 5, 6, 7, 8, 9, ..., 99]
-            >>> g(range(100))[:10].list()
-            [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-            >>> g(range(100))[::2].list()
-            [0, 2, 4, ..., 96, 98]
-            >>> g(range(100))[::-1]
-            Traceback (most recent call last):
-            ...
-            ValueError: The step can not be negative: '-1' given
+                >>> from ww import g
+                >>> g(range(3))[1]
+                1
+                >>> g(range(3))[4]
+                Traceback (most recent call last):
+                ...
+                IndexError: Index "4" out of range
+                >>> g(range(100))[3:10].list()
+                [3, 4, 5, 6, 7, 8, 9]
+                >>> g(range(100))[3:].list() # doctest: +ELLIPSIS
+                [3, 4, 5, 6, 7, 8, 9, ..., 99]
+                >>> g(range(100))[:10].list()
+                [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+                >>> g(range(100))[::2].list()
+                [0, 2, 4, ..., 96, 98]
+                >>> g(range(100))[::-1]
+                Traceback (most recent call last):
+                ...
+                ValueError: The step can not be negative: '-1' given
         """
 
         if isinstance(index, int):
@@ -409,57 +473,168 @@ class IterableWrapper(BaseWrapper):
 
         return self.__class__(iterslice(self.iterator, start, stop, step))
 
-    def map(self, func):
+    def map(self, callable):
         # type: (Callable) -> IterableWrapper
-        """Apply map() then wrap in g()
+        """ Apply map() then wrap the result in g()
 
-        Args:
-            call: the callable to pass to map()
-
-        Example:
-
-            >>> from ww import g
-            >>> g(range(3)).map(str).list()
-            ['0', '1', '2']
-
-        """
-        return self.__class__(imap(func, self.iterator))
-
-    def zip(self, *others):
-        # type: (*Iterable) -> IterableWrapper
-        """Apply zip() then wrap in g()
-
-        Args:
-            others: the iterables to pass to zip()
-
-        """
-        return self.__class__(izip(self.iterator, *others))
-
-    def cycle(self):
-        return self.__class__(itertools.cycle(self.iterator))
-
-    def sorted(self, keyfunc=None, reverse=False):
-        # type: (Callable, bool) -> IterableWrapper
-        # using builtins to avoid shadowing
-        lst = builtins.sorted(self.iterator, key=keyfunc, reverse=reverse)
-        return self.__class__(lst)
-
-    # TODO: add a sort_func argument
-    def groupby(self, keyfunc=None, reverse=False, cast=tuple):
-        # type: (Callable, bool, Callable) -> IterableWrapper
-        """ Return a generator with returns (key, sub-iterator) grouped pairs.
-
-            Create an iterator which returns (key, sub-iterator) (or any kind
-            of object casted by the `cast` parameter) grouped by each value of
-            key(value).
+            Args:
+                call: the callable to pass to map()
 
             Example:
 
                 >>> from ww import g
-                >>> my_gen = g(['morbier', 'cheddar', 'cantal',\
-                                'munster'])
+                >>> g(range(3)).map(str).list()
+                ['0', '1', '2']
+
+        """
+        return self.__class__(builtins.map(callable, self.iterator))
+
+    def zip(self, *others):
+        # type: (*Iterable) -> IterableWrapper
+        """ Apply zip() then wrap in g()
+
+            Args:
+                others: the iterables to pass to zip()
+
+            Example:
+
+                >>> from ww import g
+                >>> for element in g(range(3)).zip("abc"):
+                ...     print(*element)
+                0 a
+                1 b
+                2 c
+                >>> for element in g(range(3)).zip("abc", [True, False, None]):
+                ...    print(*element)
+                0 a True
+                1 b False
+                2 c None
+        """
+        return self.__class__(builtins.zip(self.iterator, *others))
+
+    # TODO: add filter so we can do the filter(bool) trick
+
+    # TODO: limit add an argument to limit the number of cycles.
+    def cycle(self):
+        # type: () -> IterableWrapper
+        """ Create an infinite loop, chaining the iterable on itself
+
+            Example:
+
+                >>> from ww import g
+                >>> gen = g(range(2)).cycle()
+                >>> next(gen)
+                0
+                >>> next(gen)
+                1
+                >>> next(gen)
+                0
+                >>> next(gen)
+                1
+                >>> next(gen)
+                0
+
+            .. WARNING::
+
+                Do not attempt a for loop on the result of cycle() unless
+                you really know what you are doing. Cycle will loop
+                forever. Remember you can slice g() objects.
+        """
+        return self.__class__(itertools.cycle(self.iterator))
+
+    @renamed_argument('key', 'keyfunc')
+    def sorted(self, keyfunc=None, reverse=False):
+        # type: (Callable, bool) -> IterableWrapper
+        """ Sort the iterable.
+
+            .. warning::
+
+                This will load the entire iterable in memory. Remember you
+                can slice g() objects before you sort them. Also remember you
+                can use callable in g() object slices, making it easy to start
+                or stop iteration on a condition.
+
+            Args:
+                keyfunc: A callable that must accept the current element to
+                         sort and return the object used to determine it's
+                         position. Default to return the object itselt.
+                reverse: If True, the iterable is sorted in the descending
+                         order instead of ascending. Default is False.
+
+            Returns:
+                The sorted iterable.
+
+            Example:
+
+                >>> from ww import g
+                >>> animals = ['dog', 'cat', 'zebra', 'monkey']
+                >>> for animal in g(animals).sorted():
+                ...     print(animal)
+                cat
+                dog
+                monkey
+                zebra
+                >>> for animal in g(animals).sorted(reverse=True):
+                ...     print(animal)
+                zebra
+                monkey
+                dog
+                cat
+                >>> for animal in g(animals).sorted(lambda animal: animal[-1]):
+                ...     print(animal)
+                zebra
+                dog
+                cat
+                monkey
+        """
+        # using builtins to avoid shadowing
+        lst = builtins.sorted(self.iterator, key=keyfunc, reverse=reverse)
+        return self.__class__(lst)
+
+    # TODO: add a sort_func argument to allow to choose the sorting strategy
+    # and remove the reverse argument
+    def groupby(self,
+                keyfunc=None,  # type: Callable[T]
+                reverse=False,  # type: bool
+                cast=tuple  # type: Callable[T2]
+                ):  # type: (...) -> IterableWrapper
+        """ Group items according to one common feature.
+
+            Create a generator yielding (group, grouped_items) pairs, with
+            "group" being the return value of `keyfunc`, and grouped_items
+            being an iterable of items maching this group.
+
+            Unlike itertools.groupy, the iterable is automatically sorted for
+            you, also using the `keyfunc`, since this is what you mostly want
+            to do anyway and forgetting to sort leads to useless results.
+
+            Args:
+                keyfunc: A callable that must accept the current element to
+                         group and return the object you wish to use
+                         to determine in which group the element belongs to.
+                         This object will also be used for the sorting.
+                reverse: If True, the iterable is sorted in the descending
+                         order instead of ascending. Default is False.
+                         You probably don't need to use this, we provide it
+                         just in case there is an edge case we didn't think
+                         about.
+                cast: A callable used to choose the type of the groups of
+                      items. The default is to return items grouped as a tuple.
+                      If you want groups to be generators, pass an identity
+                      function such as lambda x: x.
+
+            Returns:
+                An IterableWrapper, yielding (group, grouped_items)
+
+            Example:
+
+                >>> from ww import g
+                >>> my_gen = g(['morbier', 'cheddar', 'cantal', 'munster'])
                 >>> my_gen.groupby(lambda i: i[0]).list()
                 [('c', ('cheddar', 'cantal')), ('m', ('morbier', 'munster'))]
+                >>> my_gen = g(['morbier', 'cheddar', 'cantal', 'munster'])
+                >>> my_gen.groupby(len, cast=list).list()
+                [(6, ['cantal']), (7, ['morbier', 'cheddar', 'munster'])]
 
         """
         # full name to avoid shadowing
@@ -468,7 +643,13 @@ class IterableWrapper(BaseWrapper):
 
     def enumerate(self, start=0):
         # type: (int) -> IterableWrapper
-        """ Return an enumerator.
+        """ Give you the position of each element as you iterate.
+
+            Args:
+                start: the number to start counting from. Default is 0.
+
+            Returns:
+                An IterableWrapper, yielding (position, element)
 
             Example:
 
@@ -476,9 +657,13 @@ class IterableWrapper(BaseWrapper):
                 >>> my_g = g('cheese')
                 >>> my_g.enumerate().list()
                 [(0, 'c'), (1, 'h'), (2, 'e'), (3, 'e'), (4, 's'), (5, 'e')]
+                >>> g('cheese').enumerate(start=1).list()
+                [(1, 'c'), (2, 'h'), (3, 'e'), (4, 'e'), (5, 's'), (6, 'e')]
         """
         return self.__class__(enumerate(self.iterator, start))
 
+    # TODO: provide the static method range(), and give it the habiility
+    # to do itertools.count.
     def count(self):
         # type: () -> int
         """ Return the number of elements in the iterable.
@@ -491,7 +676,7 @@ class IterableWrapper(BaseWrapper):
 
         """
         try:
-            return len(self.iterator)
+            return len(self.iterator)  # type: ignore
         except TypeError:
             for i, _ in enumerate(self.iterator, 1):
                 pass
@@ -521,7 +706,7 @@ class IterableWrapper(BaseWrapper):
         return self.__class__(new)
 
     def join(self, joiner, formatter=lambda s, t: t.format(s), template="{}"):
-        # type: (Iterable, Callable, str) -> ww.s.StringWrapper
+        # type: (str, Callable, str) -> ww.s.StringWrapper
         """ Join every item of the iterable into a string.
             This is just like the `join()` method on `str()`, but conveniently
             stored on the iterable itself.
@@ -531,9 +716,9 @@ class IterableWrapper(BaseWrapper):
                 >>> from ww import g
                 >>> g(range(3)).join('|')
                 u'0|1|2'
-                >>> print(g(range(3)).join('~~',\
-                    formatter=lambda s, t: '"{}"'.format(t.format(s))))
-                "0"~~"1"~~"2"
+                >>> to_string = lambda s, t: str(s) * s
+                >>> print(g(range(1, 4)).join(',', formatter=to_string))
+                1,22,333
                 >>> print(g(range(3)).join('\\n', template='- {}'))
                 - 0
                 - 1

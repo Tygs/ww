@@ -7,6 +7,7 @@ from __future__ import (unicode_literals, absolute_import,
 import pytest
 
 from ww import g
+from ww.tools.iterables import skip_duplicates
 
 
 def test_iter():
@@ -32,6 +33,11 @@ def test_iter():
 
     for i, x in enumerate(g(foo())):
         assert x == i
+
+    with pytest.raises(TypeError) as excinfo:
+        g(range(10), 1)
+
+    assert 'g() only accept iterables' in str(excinfo.value)
 
 
 def test_nested():
@@ -103,14 +109,16 @@ def test_tee():
         assert isinstance(x, g)
         assert list(x) == [0, 1, 4]
 
-    gen = g(x * x for x in range(3))
+    gen = g(x * x for x in range(3))  # pragma: no cover
     gen2, gen3 = gen.tee()
 
     with pytest.raises(RuntimeError):
         list(gen)
 
 
-def test_getitem():
+# we disable coverage here because coverage says the generator don't
+# finish running (which is the whole point of this code)
+def test_getitem():  # pragma: no cover
 
     gen = g(x * x for x in range(10))
     assert isinstance(gen[3:5], g)
@@ -122,18 +130,27 @@ def test_getitem():
     def ends_with_5(x):
         return str(x).endswith('5')
     gen = g(x * x for x in range(10))
-    assert gen[ends_with_5:].list() == [25, 36, 49, 64, 81]
+    # Ignore error because of :
+    # https://github.com/python/mypy/issues/2410
+    assert gen[ends_with_5:].list() == [25, 36, 49, 64, 81]  # type: ignore
 
+    gen = g(x * x for x in range(10))  # test slicing with 2 callables
+    assert gen[bool:ends_with_5].list() == [1, 4, 9, 16]  # type: ignore
+
+    gen = g(x * x for x in range(10))
     assert g(x * x for x in range(10))[ends_with_5] == 25
 
-    gen = g(x * x for x in range(10))
-    assert gen[:ends_with_5].list() == [0, 1, 4, 9, 16]
+    with pytest.raises(IndexError):
+        g(x * x for x in range(10))[lambda x: False]
 
     gen = g(x * x for x in range(10))
-    assert gen[2:ends_with_5].list() == [4, 9, 16]
+    assert gen[:ends_with_5].list() == [0, 1, 4, 9, 16]  # type: ignore
 
     gen = g(x * x for x in range(10))
-    assert gen[ends_with_5:8].list() == [25, 36, 49]
+    assert gen[2:ends_with_5].list() == [4, 9, 16]  # type: ignore
+
+    gen = g(x * x for x in range(10))
+    assert gen[ends_with_5:8].list() == [25, 36, 49]  # type: ignore
 
     assert g(x * x for x in range(10))[-1] == 81
 
@@ -230,6 +247,12 @@ def test_firsts():
     a, b = gen.firsts(2)
     assert list(gen) == [2, 3, 4]
 
+    with pytest.raises(ValueError):
+        g("12").firsts('a').list()
+
+    with pytest.raises(ValueError):
+        g("12").firsts(-1).list()
+
 
 def test_lasts():
 
@@ -278,6 +301,9 @@ def test_skip_duplicates():
     gen = g([1]).skip_duplicates(fingerprints=set([1]))
     assert list(gen) == []
 
+    with pytest.raises(TypeError):
+        list(skip_duplicates(1))
+
 
 def test_join():
 
@@ -285,3 +311,21 @@ def test_join():
     assert g(range(3)).join(',', template="{}#") == "0#,1#,2#"
     string = g(range(3)).join(',', formatter=lambda x, y: str(x * x))
     assert string == "0,1,4"
+
+
+def test_tuple():
+    assert g(range(2)).tuple() == (0, 1)
+
+
+def test_set():
+    assert g(range(2)).set() == {0, 1}
+
+
+def test_str():
+    assert g(range(2)).str() == "<IterableWrapper generator>"
+
+
+def test_pprint(capsys):
+    g(range(2)).pprint()
+    out, err = capsys.readouterr()
+    assert "<IterableWrapper generator>" in out

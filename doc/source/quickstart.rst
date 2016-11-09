@@ -33,7 +33,7 @@ using WW wrapper.
 .. code-block:: python
 
     >>> from ww import l
-    >>> lst = l([1, 2])
+    >>> lst = l([1, 2]) # wrap your list in the wonderful wrapper
     >>> lst.append(3, 4).append(5)
     [1, 2, 3, 4, 5]
 
@@ -43,3 +43,15 @@ some bonuses, like this chaining `append()` method.
 
 From the time you’ll start to use `l` objects, any method or operator on those objects will start
 to return other `l` objects, so you don’t have to wrap them explicitely.
+
+WW has many wrappers:
+
+- l for lists
+- t for tuples
+- g for iterables
+- d for dictionaries
+- s for strings
+
+They all come with transparent compatibility with builtin Python types, and add cool features.
+
+Right now you'll find some features are missing or undocumented, since we are still in version 0.1. But it's progressing steadily.

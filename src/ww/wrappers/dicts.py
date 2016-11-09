@@ -2,17 +2,21 @@
 
 # TODO: pretty print method
 
+# TODO:
+# foo = 1
+# bar = 2
+# d.from_vars('foo', 'bar')
+# {'foo': 1, 'bar': 2}
+
 import ww
 
-try:
-    from typing import Iterable, Any, Union, Callable  # noqa
-except ImportError:
-    pass
+from ww.types import Iterable, Hashable, Any  # noqa
 
 
 class DictWrapper(dict):
+
     def isubset(self, *keys):
-        # type: (*Iterable) -> ww.g
+        # type: (*Hashable) -> ww.g
         """Return key, self[key] as generator for key in keys.
 
         Raise KeyError if a key does not exist
@@ -29,7 +33,7 @@ class DictWrapper(dict):
         return ww.g((key, self[key]) for key in keys)
 
     def subset(self, *keys):
-        # type: (*Iterable) -> DictWrapper
+        # type: (*Hashable) -> DictWrapper
         """Return d(key, self[key]) for key in keys.
 
         Raise KeyError if a key does not exist
@@ -61,7 +65,7 @@ class DictWrapper(dict):
         return self.__class__((v, k) for k, v in self.items())
 
     def add(self, key, value):
-        # type: (Any, Any) -> DictWrapper
+        # type: (Hashable, Any) -> DictWrapper
         """Add value in key
 
         Args:
@@ -113,7 +117,7 @@ class DictWrapper(dict):
         return cls((key, value(key)) for key in iterable)
 
     def merge(self, other_dict):
-        # type: (Union[DictWrapper, Dict]) -> DictWrapper
+        # type: (dict) -> DictWrapper
         """Merge self with other_dict
 
         Args:
@@ -133,7 +137,7 @@ class DictWrapper(dict):
         return self
 
     def delete(self, *keys):
-        # type: (*Iterable) -> DictWrapper
+        # type: (*Hashable) -> DictWrapper
         """Delete keys from dict
 
         Args:
@@ -153,7 +157,7 @@ class DictWrapper(dict):
         return self
 
     def __add__(self, other):
-        # type: (Union[DictWrapper, Dict]) -> DictWrapper
+        # type: (dict) -> DictWrapper
         """Add other in self and return new dict
 
         Args:
@@ -173,7 +177,7 @@ class DictWrapper(dict):
         return copy.merge(other)
 
     def __radd__(self, other):
-        # type: (Union[DictWrapper, Dict]) -> DictWrapper
+        # type: (dict) -> DictWrapper
         """Add other in self, and return new dict
 
         Args:
@@ -193,7 +197,7 @@ class DictWrapper(dict):
         return copy.merge(self)
 
     def __iadd__(self, other):
-        # type: (Union[DictWrapper, Dict]) -> DictWrapper
+        # type: (dict) -> DictWrapper
         """Add other in self
 
         Args:

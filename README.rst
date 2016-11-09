@@ -1,5 +1,5 @@
-Wonderful Wrappers
-====================
+Wonderful Wrappers: unobtrusive wrappers improving Python builtins and more
+=============================================================================
 
 .. image:: http://travis-ci.org/Tygs/ww.svg?branch=master
     :target: https://travis-ci.org/Tygs/ww
@@ -9,7 +9,15 @@ Wonderful Wrappers
     :target: http://wonderful-wrappers.readthedocs.io/en/latest/?badge=latest
     :alt: Documentation Status
 
-Unobtrusive wrappers improving Python builtins and more.
+- **Compatibility:** CPython 2.7+/3.3+ and the last stable versions of pypy2.
+- **Platform:** Agnostic. But only tested on GNU/Linux for now.
+- **Version:** 0.2
+- `Documentation`_.
+
+**Install with**::
+
+  pip install ww
+
 
 Ever wish you could...
 ------------------------
@@ -75,19 +83,6 @@ have a `len` attribute on lists?
 
 And there are many, many, more goodies.
 
-Install them with::
-
-    pip install ww
-
-Then `read the doc`_.
-
-Versions infos
----------------
-
-**Compatibility:** CPython 2.7+/3.3+ and the last stable versions of pypy2/3.
-**Platform:** It should be any as the lib is pure Python and is not OS related.
-But right now we only tested it on GNU/Linux.
-**Version:** 0.1
 
 WARNING
 --------
@@ -107,22 +102,28 @@ Development
 ------------
 
 You can offer PR with your contributions to ww. They should include unit tests,
-docstrings, type definitions and a new entry in the documentation.
+docstrings, type definitions and a new entry in the documentation. And
+follow the style conventions:
 
-Install for dev::
+ - Python: `PEP8`_
+ - Docstrings: `Google style`_
+
+Get the full repository:
+
+    git clone https://github.com/Tygs/ww.git
+
+And move inside the ww directory.
+
+Install ww and the dependancies for dev::
 
     python setup.py develop
     pip install -r dev-requirements.txt
-
-Style Guide :
- - Python: `PEP8`_
- - Docstrings: `Google style`_
 
 Deactivate dev mode:
 
     python setup.py develop --uninstall
 
-Running all tests on your current Python::
+Running unit tests on your current Python::
 
     python setup.py test
 
@@ -133,15 +134,73 @@ Run tests coverage with your current Python::
     # dump an HTML report in htmlcov dir
     py.test  --cov-report html --cov ww tests
 
-Running all the tests with all Python versions,
-build the doc, scan the code with flake8 and mypy and recalculate coverage::
+We have many test environements to build the doc, validate the code against
+various checkers and linters or run unit tests on several Python interpreters.
+
+You can list them all with::
+
+     tox -l
+
+E.G::
+
+    $ tox -l
+    flake8
+    py35
+    py34
+    py33
+    py27
+    pypy2
+    doc
+    coverage
+    mypy
+    bandit
+
+You can run them individually with::
+
+    tox -e env_name
+
+E.G:
+
+    tox -e doc # builds the documentation
+
+All envs with a name starting with "py" requires that you have the matching
+Python interpreter installed on your system to be ran.
+
+E.G: py33 requires you to have CPython 3.3 installed on your machine, and pypy2
+ supposes you have PyPy2 on your machine.
+
+The mypy, bandit and doc env require you to have Python3.5 installed.
+
+Running all the tests in all envs can be done with:
 
     tox
 
-Before you do a PR, it's better if you can do this. If you can't
-(e.g: you can't install one of the Python targets), please let us know in the
-PR comments.
+Before you do a PR, it's better if you can do this, since it will run the
+the most tests. But remember if you don't have the matching interpreters
+they will be skipped.
+
+In any case, running the checkers and linters is strongly advised, as any PR
+failing them will be rejected.
+
+Versioning scheme
+------------------
+
+Versioning follow `SemVer`_, althoug we won't commit to stability before version 1.0.
+
+Release with X.Y.Z will be of 2 kinds:
+
+- if Y is odd, the release will add features.
+- if Y is even or Z > 0, the release will be dedicated to bug fixing,
+  documentation, API improvment and performances.
+
+E.G.:
+
+- 0.2.1: 1 > 0 so no new features.
+- 1.4.1: 4 is even, so no new features.
+- 2.1.0: 1 is odd, you may see new feature in this release.
+
 
 .. _PEP8: https://www.python.org/dev/peps/pep-0008/
 .. _Google style: http://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html
-.. _Read the doc: http://wonderful-wrappers.readthedocs.io/
+.. _Documentation: http://wonderful-wrappers.readthedocs.io/
+.. _SemVer: http://semver.org/

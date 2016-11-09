@@ -40,5 +40,23 @@ def test_to_d():
 def test_to_d_with_bad_input():
     tple = t(((1, 2), (3, 4), (5)))
 
+    with pytest.raises(ValueError):
+        tple.to_d()
+
+    tple = t(((1, 2), (3, 4), (5, 6, 7)))
+
+    with pytest.raises(ValueError):
+        tple.to_d()
+
+    tple = t((None, (1, 2), (3, 4)))
+
+    with pytest.raises(ValueError):
+        tple.to_d()
+
+    def gen():
+        yield (1, 2)
+        raise TypeError('Foo')
+
+    tple = t((gen(),))
     with pytest.raises(TypeError):
-        type(tple.to_d())
+        tple.to_d()

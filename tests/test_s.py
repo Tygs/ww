@@ -1,7 +1,9 @@
 # coding: utf-8
+
 from __future__ import (
     unicode_literals, division, print_function, absolute_import
 )
+
 import re
 
 import pytest
@@ -34,9 +36,9 @@ def test_split():
 
     assert s('a,b;c/d').split(',', ';', '/').list() == ['a', 'b', 'c', 'd']
 
-    assert s(r'a1b33c-d').split('\d+').list() == ['a', 'b', 'c-d']
+    assert s(r'a1b33c-d').split(r'\d+').list() == ['a', 'b', 'c-d']
 
-    assert s(r'a1b33c-d').split('\d+', '-').list() == ['a', 'b', 'c', 'd']
+    assert s(r'a1b33c-d').split(r'\d+', '-').list() == ['a', 'b', 'c', 'd']
 
     assert s(r'cAt').split('a', flags='i').list() == ['c', 't']
 
@@ -44,6 +46,9 @@ def test_split():
 
     chunks = s('a,b;c/d=a,b;c/d').split(',', ';', '/', maxsplit=3)
     assert chunks.list() == ['a', 'b', 'c', 'd=a,b;c/d']
+
+    with pytest.raises(TypeError):
+        s('foo').split(1)
 
 
 def test_maxsplit_with_regex():
@@ -67,13 +72,30 @@ def test_replace():
 
     assert s('a,b;c/d').replace((',', ';', '/'), ',') == 'a,b,c,d'
 
-    assert s(r'a1b33c-d').replace('\d+', ',') == 'a,b,c-d'
+    assert s(r'a1b33c-d').replace(r'\d+', ',') == 'a,b,c-d'
 
-    assert s(r'a1b33c-d').replace(('\d+', '-'), ',') == 'a,b,c,d'
+    assert s(r'a1b33c-d').replace((r'\d+', '-'), ',') == 'a,b,c,d'
 
     assert s(r'cAt').replace('a', 'b', flags='i') == 'cbt'
 
     assert s(r'cAt').replace('a', 'b', flags=re.I) == 'cbt'
+
+    with pytest.raises(ValueError):
+        s(r'cAt').replace(('a', 'b', 'c'), ('b', 'b'))
+
+
+def test_replace_with_maxplit():
+    string = s(r'a-1,b-3,3c-d')
+    assert string.replace(('[,-]'), '', maxreplace=3) == 'a1b3,3c-d'
+
+
+def test_replace_with_callback():
+    string = s(r'a-1,b-3,3c-d')
+
+    def upper(match):
+        return match.group().upper()
+
+    assert string.replace(('[ab]'), upper, maxreplace=3) == 'A-1,B-3,3c-d'
 
 
 def test_join():
@@ -109,3 +131,46 @@ def test_format():
     assert f(string) == "1 1.0"
     assert isinstance(f(string), s)
     assert f('{foo} {bar[0]:.1f}') == "1 1.0"
+
+
+def test_add():
+
+    string = s('foo')
+    assert string + 'bar' == 'foobar'
+
+    with pytest.raises(TypeError):
+        string + b'bar'
+
+    with pytest.raises(TypeError):
+        string + 1
+
+    assert 'bar' + string == 'barfoo'
+
+    with pytest.raises(TypeError):
+        b'bar' + string
+
+    with pytest.raises(TypeError):
+        1 + string
+
+
+def test_tobool():
+
+    conversions = {
+        '1': True,
+        '0': False,
+        'true': True,
+        'false': False,
+        'on': True,
+        'off': False,
+        'yes': True,
+        'no': False,
+        '': False
+    }
+
+    for key, val in conversions.items():
+        assert s(key).to_bool() == val
+
+    assert s('foo').to_bool(default=True) is True
+
+    with pytest.raises(ValueError):
+        s('foo').to_bool()

@@ -1,16 +1,49 @@
 # coding: utf-8
 
+"""
+    :doc:`g() </iterable_wrapper>` is very convenient, but it's only a
+    thin wrapper on top of the tools from this module.
+
+    So if you want to apply some of the goodies from it without having to
+    turn your iterables into IterableWrapper objects, you can use the functions
+    from this module directly.
+
+    Example:
+
+        >>> from ww.tools.iterables import chunks  # same as g().chunks()
+        >>> list(chunks(range(10), 3))
+        [(0, 1, 2), (3, 4, 5), (6, 7, 8), (9,)]
+
+    You'll find bellow the detailed documentation for each functions. Remember
+    they all take an iterable as input, and most often ouput a generator.
+
+    Go have a look, there is some great stuff here!
+"""
+
+from __future__ import division, absolute_import, print_function
+
 import itertools
 
 from future.utils import raise_from
 
-try:
-    from typing import Union, Callable, Iterable, Any, TypeVar   # noqa
-    T = TypeVar('T')
-except ImportError:
-    pass
+import ww
+
+from ww.types import Union, Callable, Iterable, Any, T  # noqa
+from ww.utils import renamed_argument
 
 from collections import deque
+
+# TODO: implement all https://docs.python.org/3/library/itertools.html
+# which means backports and receipes
+# TODO: cycle, but accept a max repeat
+# TODO: filter() but:
+# if an iterable is first element, lambda x: x in first_element
+# if an iterable is a non callable scalare,
+# lambda x: x == first_element
+# a 3rd param to take an Exception or a list of exception to ignore so you can
+# filter out stuff raisin exceptions
+# TODO: map, but a 3rd param to take an Exception or a list of exception
+# to ignore so you can filter out stuff raisin exceptions
 
 
 def starts_when(iterable, condition):
@@ -18,6 +51,7 @@ def starts_when(iterable, condition):
     """Start yielding items when a condition arise.
 
     Args:
+        iterable: the iterable to filter.
         condition: if the callable returns True once, start yielding
                    items. If it's not a callable, it will be converted
                    to one as `lambda condition: condition == item`.
@@ -42,6 +76,7 @@ def stops_when(iterable, condition):
     """Stop yielding items when a condition arise.
 
     Args:
+        iterable: the iterable to filter.
         condition: if the callable returns True once, stop yielding
                    items. If it's not a callable, it will be converted
                    to one as `lambda condition: condition == item`.
@@ -115,6 +150,7 @@ def skip_duplicates(iterable, key=None, fingerprints=()):
     """
 
     fingerprints = fingerprints or set()
+    fingerprint = None  # needed on type errors unrelated to hashing
 
     try:
         # duplicate some code to gain perf in the most common case
@@ -210,6 +246,7 @@ def at_index(iterable, index):
         raise_from(IndexError('Index "%d" out of range' % index), e)
 
 
+# TODO: accept a default value if not value is found
 def first_true(iterable, func):
     # type: (Iterable[T], Callable) -> T
     """" Return the first item of the iterable for which func(item) == True.
@@ -221,6 +258,7 @@ def first_true(iterable, func):
     try:
         return next((x for x in iterable if func(x)))
     except StopIteration as e:
+        # TODO: Find a better error message
         raise_from(IndexError('No match for %s' % func), e)
 
 
@@ -255,6 +293,10 @@ def iterslice(iterable, start=0, stop=None, step=1):
     return itertools.islice(iterable, start, stop, step)
 
 
+# TODO: allow to disable auto sorting. Document how to make it behave
+# like the original groupby
+# TODO: allow cast to be None, which set cast to lambda x: x
+@renamed_argument('key', 'keyfunc')
 def groupby(iterable, keyfunc=None, reverse=False, cast=tuple):
     # type: (Iterable, Callable, bool, Callable) -> Iterable
     sorted_iterable = sorted(iterable, key=keyfunc, reverse=reverse)
@@ -262,16 +304,25 @@ def groupby(iterable, keyfunc=None, reverse=False, cast=tuple):
         yield key, cast(group)
 
 
+# TODO: make the same things than in matrix, where the default value
+# can be a callable, a non string iterable, or a value
 def firsts(iterable, items=1, default=None):
     # type: (Iterable[T], int, T) -> Iterable[T]
     """ Lazily return the first x items from this iterable or default. """
 
     try:
         items = int(items)
-        assert items >= 0
-    except (TypeError, AssertionError):
-        raise ValueError("items should be set so that int(items) >= 0")
+    except (ValueError, TypeError):
+        raise ValueError("items should be usable as an int but is currently "
+                         "'{}' of type '{}'".format(items, type(items)))
 
+    # TODO: replace this so that it returns lasts()
+    if items < 0:
+        raise ValueError(ww.f("items is {items} but should "
+                              "be greater than 0. If you wish to get the last "
+                              "items, use the lasts() function."))
+
+    i = 0
     for i, item in zip(range(items), iterable):
         yield item
 
@@ -285,8 +336,29 @@ def lasts(iterable, items=1, default=None):
 
     last_items = deque(iterable, maxlen=items)
 
-    for x in range(items - len(last_items)):
+    for _ in range(items - len(last_items)):
         yield default
 
     for y in last_items:
         yield y
+
+# reduce is technically the last value of accumulate
+# use ww.utils.EMPTY instead of EMPTY
+# Put in the doc than scan=fold=accumulare and reduce=accumulate
+# replace https://docs.python.org/3/library/itertools.html#itertools.accumulate
+# that works only on Python 3.3 and doesn't have echo_start
+# def accumulate(func, iterable, start=ww.utils.EMPTY, *, echo_start=True):
+#     """
+#     Scan higher-order function.
+#     The first 3 positional arguments are alike to the ``functools.reduce``
+#     signature. This function accepts an extra optional ``echo_start``
+#     parameter that controls whether the first value should be in the output.
+#     """
+#     it = iter(iterable)
+#     if start is ww.utils._EMPTY:
+#         start = next(it)
+#     if echo_start:
+#         yield start
+#     for item in it:
+#         start = func(start, item)
+# yield start
