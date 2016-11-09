@@ -113,7 +113,6 @@
 
 from __future__ import (absolute_import, division, print_function)
 
-# TODO: add home link button to documention web page
 # TODO : flags can be passed as strings. Ex: s.search('regex', flags='ig')
 # TODO : make s.search(regex) return a wrapper with __bool__ evaluating to
 # false if no match instead of None and allow default value for group(x)
@@ -121,7 +120,10 @@ from __future__ import (absolute_import, division, print_function)
 # groupdict['foo']
 # TODO .groups would be a g() object
 # TODO: .pp() to pretty_print
-# TODO: override slicing to return part s
+# TODO: override slicing to allow callables
+# TODO: provide "strip_comments" ?
+# TODO: provide from_json() / to_json()
+# TODO: provide the same for html / xml
 
 # TODO : add encoding detection, fuzzy_decode() to make the best of shitty
 # decoding, unidecode, slug, etc,
@@ -354,7 +356,7 @@ class StringWrapper(with_metaclass(MetaS, unicode)):  # type: ignore
                 [u'a', u'b', u'c', u'd', u'a,b;c/d']
         """
         kwargs.setdefault('cast', ww.l)
-        chunks = multisplit(self, *separators, **kwargs)
+        chunks = multisplit(self, *separators, **kwargs)  # type: Iterable[str]
         return ww.g(chunks).map(self.__class__)
 
     def replace(self,
@@ -786,7 +788,6 @@ class StringWrapper(with_metaclass(MetaS, unicode)):  # type: ignore
             return 'u{}'.format(super(StringWrapper, self).__repr__())
 
 
-# TODO: make a BIG WARNING stating that fstring as wrappers are dangerous
 # TODO: make sure each class call self._class instead of s(), g(), etc
 class FStringWrapper(with_metaclass(MetaF)):  # type: ignore
     """

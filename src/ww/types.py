@@ -17,8 +17,9 @@ except ImportError:
     locals()['typing'] = _
 
 try:
-    from typing import Union, Iterable, Callable, Any, TypeVar
+    from typing import Union, Iterable, Callable, Any, TypeVar, Hashable
     T = TypeVar('T')
+    T2 = TypeVar('T2')
     C = TypeVar('C', bound=Callable)
     I = TypeVar('I', bound=Iterable)
     istr = Iterable[past_unicode]
@@ -39,3 +40,5 @@ except ImportError:
         T = None
         C = None
         I = None
+        T2 = None
+        Hashable = None

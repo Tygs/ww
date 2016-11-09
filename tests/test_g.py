@@ -127,18 +127,20 @@ def test_getitem():
     def ends_with_5(x):
         return str(x).endswith('5')
     gen = g(x * x for x in range(10))
-    assert gen[ends_with_5:].list() == [25, 36, 49, 64, 81]
+    # Ignore error because of :
+    # https://github.com/python/mypy/issues/2410
+    assert gen[ends_with_5:].list() == [25, 36, 49, 64, 81]  # type: ignore
 
     assert g(x * x for x in range(10))[ends_with_5] == 25
 
     gen = g(x * x for x in range(10))
-    assert gen[:ends_with_5].list() == [0, 1, 4, 9, 16]
+    assert gen[:ends_with_5].list() == [0, 1, 4, 9, 16]  # type: ignore
 
     gen = g(x * x for x in range(10))
-    assert gen[2:ends_with_5].list() == [4, 9, 16]
+    assert gen[2:ends_with_5].list() == [4, 9, 16]  # type: ignore
 
     gen = g(x * x for x in range(10))
-    assert gen[ends_with_5:8].list() == [25, 36, 49]
+    assert gen[ends_with_5:8].list() == [25, 36, 49]  # type: ignore
 
     assert g(x * x for x in range(10))[-1] == 81
 

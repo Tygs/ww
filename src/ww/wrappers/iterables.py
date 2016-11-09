@@ -168,7 +168,9 @@ from __future__ import (absolute_import, division, print_function)
 
 import itertools
 
-from ww.types import Any, Union, Callable, Iterable  # noqa
+from collections import Iterable as IterableAbc, Iterator
+
+from ww.types import Any, Union, Callable, Iterable, T, T2  # noqa
 from ww.utils import renamed_argument
 
 import builtins
@@ -187,7 +189,7 @@ from .base import BaseWrapper
 # TODO: merge minibelt
 
 
-class IterableWrapper(BaseWrapper):
+class IterableWrapper(Iterator, IterableAbc, BaseWrapper):
 
     def __init__(self, iterable, *more_iterables):
         # type: (Iterable, *Iterable) -> None
@@ -340,11 +342,13 @@ class IterableWrapper(BaseWrapper):
         filter_from = set(ensure_tuple(other))
         return self.__class__(x for x in self.iterator if x not in filter_from)
 
+    # TODO: catch the exception when items are not hashable and raise
+    # a better more explicit error
     def __rsub__(self, other):
         # type: (Iterable) -> IterableWrapper
         """ Yield items that are not in the other iterable.
 
-            .. WARNING::
+            .. warning::
                 The other iterable will be turned into a set. So make sure:
 
                 - it has a finite size and can fit in memory.
@@ -543,10 +547,12 @@ class IterableWrapper(BaseWrapper):
         # type: (Callable, bool) -> IterableWrapper
         """ Sort the iterable.
 
-            .. WARNING::
+            .. warning::
 
                 This will load the entire iterable in memory. Remember you
-                can slice g() objects before you sort them.
+                can slice g() objects before you sort them. Also remember you
+                can use callable in g() object slices, making it easy to start
+                or stop iteration on a condition.
 
             Args:
                 keyfunc: A callable that must accept the current element to
@@ -585,22 +591,50 @@ class IterableWrapper(BaseWrapper):
         lst = builtins.sorted(self.iterator, key=keyfunc, reverse=reverse)
         return self.__class__(lst)
 
-    # TODO: add a sort_func argument
-    def groupby(self, keyfunc=None, reverse=False, cast=tuple):
-        # type: (Callable, bool, Callable) -> IterableWrapper
-        """ Return a generator with returns (key, sub-iterator) grouped pairs.
+    # TODO: add a sort_func argument to allow to choose the sorting strategy
+    # and remove the reverse argument
+    def groupby(self,
+                keyfunc=None,  # type: Callable[T]
+                reverse=False,  # type: bool
+                cast=tuple  # type: Callable[T2]
+                ):  # type: (...) -> IterableWrapper
+        """ Group items according to one common feature.
 
-            Create an iterator which returns (key, sub-iterator) (or any kind
-            of object casted by the `cast` parameter) grouped by each value of
-            key(value).
+            Create a generator yielding (group, grouped_items) pairs, with
+            "group" being the return value of `keyfunc`, and grouped_items
+            being an iterable of items maching this group.
+
+            Unlike itertools.groupy, the iterable is automatically sorted for
+            you, also using the `keyfunc`, since this is what you mostly want
+            to do anyway and forgetting to sort leads to useless results.
+
+            Args:
+                keyfunc: A callable that must accept the current element to
+                         group and return the object you wish to use
+                         to determine in which group the element belongs to.
+                         This object will also be used for the sorting.
+                reverse: If True, the iterable is sorted in the descending
+                         order instead of ascending. Default is False.
+                         You probably don't need to use this, we provide it
+                         just in case there is an edge case we didn't think
+                         about.
+                cast: A callable used to choose the type of the groups of
+                      items. The default is to return items grouped as a tuple.
+                      If you want groups to be generators, pass an identity
+                      function such as lambda x: x.
+
+            Returns:
+                An IterableWrapper, yielding (group, grouped_items)
 
             Example:
 
                 >>> from ww import g
-                >>> my_gen = g(['morbier', 'cheddar', 'cantal',\
-                                'munster'])
+                >>> my_gen = g(['morbier', 'cheddar', 'cantal', 'munster'])
                 >>> my_gen.groupby(lambda i: i[0]).list()
                 [('c', ('cheddar', 'cantal')), ('m', ('morbier', 'munster'))]
+                >>> my_gen = g(['morbier', 'cheddar', 'cantal', 'munster'])
+                >>> my_gen.groupby(len, cast=list).list()
+                [(6, ['cantal']), (7, ['morbier', 'cheddar', 'munster'])]
 
         """
         # full name to avoid shadowing
@@ -609,7 +643,13 @@ class IterableWrapper(BaseWrapper):
 
     def enumerate(self, start=0):
         # type: (int) -> IterableWrapper
-        """ Return an enumerator.
+        """ Give you the position of each element as you iterate.
+
+            Args:
+                start: the number to start counting from. Default is 0.
+
+            Returns:
+                An IterableWrapper, yielding (position, element)
 
             Example:
 
@@ -617,9 +657,13 @@ class IterableWrapper(BaseWrapper):
                 >>> my_g = g('cheese')
                 >>> my_g.enumerate().list()
                 [(0, 'c'), (1, 'h'), (2, 'e'), (3, 'e'), (4, 's'), (5, 'e')]
+                >>> g('cheese').enumerate(start=1).list()
+                [(1, 'c'), (2, 'h'), (3, 'e'), (4, 'e'), (5, 's'), (6, 'e')]
         """
         return self.__class__(enumerate(self.iterator, start))
 
+    # TODO: provide the static method range(), and give it the habiility
+    # to do itertools.count.
     def count(self):
         # type: () -> int
         """ Return the number of elements in the iterable.

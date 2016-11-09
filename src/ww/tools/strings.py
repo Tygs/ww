@@ -74,7 +74,7 @@ def parse_re_flags(flags):
 # kwargs allow compatibiliy with 2.7 and 3 since you can't use
 # keyword-only arguments in python 2
 # TODO: remove empty strings
-def multisplit(string,
+def multisplit(string,  # type: unicode
                *separators,  # type: unicode
                **kwargs  # type: Union[unicode, C[..., I[unicode]]]
                ):  # type: (...) -> I

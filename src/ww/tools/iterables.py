@@ -292,6 +292,7 @@ def iterslice(iterable, start=0, stop=None, step=1):
 
 # TODO: allow to disable auto sorting. Document how to make it behave
 # like the original groupby
+# TODO: allow cast to be None, which set cast to lambda x: x
 @renamed_argument('key', 'keyfunc')
 def groupby(iterable, keyfunc=None, reverse=False, cast=tuple):
     # type: (Iterable, Callable, bool, Callable) -> Iterable

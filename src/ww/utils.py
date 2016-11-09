@@ -9,6 +9,14 @@ try:
 except NameError:
     unicode = str
 
+# create a @deprecated decorator
+# like this one: https://github.com/python/mypy/issues/2403
+# which:
+# - save the object in a list of deprecated things
+# - issue a warning if used
+# - check if deprecated is not in the docstring, and add it at the end if
+#   not if you pass "add_to_docstring"
+
 
 def ensure_tuple(val):
     if not isinstance(val, basestring):
