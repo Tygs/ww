@@ -47,6 +47,9 @@ def test_split():
     chunks = s('a,b;c/d=a,b;c/d').split(',', ';', '/', maxsplit=3)
     assert chunks.list() == ['a', 'b', 'c', 'd=a,b;c/d']
 
+    with pytest.raises(TypeError):
+        s('foo').split(1)
+
 
 def test_maxsplit_with_regex():
     chunks = s('a,b;c/d=a,b;c/d').split(',', ';', '[/=]', maxsplit=4)
@@ -76,6 +79,9 @@ def test_replace():
     assert s(r'cAt').replace('a', 'b', flags='i') == 'cbt'
 
     assert s(r'cAt').replace('a', 'b', flags=re.I) == 'cbt'
+
+    with pytest.raises(ValueError):
+        s(r'cAt').replace(('a', 'b', 'c'), ('b', 'b'))
 
 
 def test_replace_with_maxplit():
@@ -125,3 +131,46 @@ def test_format():
     assert f(string) == "1 1.0"
     assert isinstance(f(string), s)
     assert f('{foo} {bar[0]:.1f}') == "1 1.0"
+
+
+def test_add():
+
+    string = s('foo')
+    assert string + 'bar' == 'foobar'
+
+    with pytest.raises(TypeError):
+        string + b'bar'
+
+    with pytest.raises(TypeError):
+        string + 1
+
+    assert 'bar' + string == 'barfoo'
+
+    with pytest.raises(TypeError):
+        b'bar' + string
+
+    with pytest.raises(TypeError):
+        1 + string
+
+
+def test_tobool():
+
+    conversions = {
+        '1': True,
+        '0': False,
+        'true': True,
+        'false': False,
+        'on': True,
+        'off': False,
+        'yes': True,
+        'no': False,
+        '': False
+    }
+
+    for key, val in conversions.items():
+        assert s(key).to_bool() == val
+
+    assert s('foo').to_bool(default=True) is True
+
+    with pytest.raises(ValueError):
+        s('foo').to_bool()

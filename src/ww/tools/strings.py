@@ -56,7 +56,7 @@ REGEX_FLAGS = {
 try:
     # Python2 doesn't support re.ASCII flag
     REGEX_FLAGS['a'] = re.ASCII
-except AttributeError:
+except AttributeError:  # pragma: no cover
     pass
 
 

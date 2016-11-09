@@ -1,5 +1,7 @@
 # TODO: add "removable_property" we use in tygs
 # TODO: add reify, based on removable property
+# TODO: add a function always_return(x) that returns always x, identity
+# maybe in a fn module ?
 from functools import wraps
 
 from past.builtins import basestring
@@ -27,15 +29,13 @@ def ensure_tuple(val):
     return (val,)
 
 
-def nop(val):
-    return val
-
-
+# TODO: make that a decorator
+# TODO: make name not required
 def require_positive_number(number, name,
                             tpl='{} must be a positive number or 0, not "{}"'):
     try:
         number = int(number)
-    except ValueError:
+    except (ValueError, TypeError):
         raise ValueError(tpl.format(name, number))
 
     if number < 0:
@@ -52,14 +52,10 @@ def renamed_argument(old_names, new_names):
     def decorator(func):
         @wraps(func)
         def decorated(*args, **kwargs):
-            if old_names in kwargs:
-                if new_names not in kwargs:
-                    raise TypeError(('{} argument doesn\'t exist. Instead,'
-                                     'use {}').format(old_names, new_names))
-                else:
-                    raise TypeError(('You gave both {} and {} arguments, '
-                                     'but {1} doesn\'t exist.')
-                                    .format(old_names, new_names))
+            for old_name, new_name in zip(old_names, new_names):
+                if old_name in kwargs:
+                    raise TypeError(('"{}" doesn\'t exist. Instead, '
+                                     'use "{}"').format(old_name, new_name))
             return func(*args, **kwargs)
         return decorated
     return decorator

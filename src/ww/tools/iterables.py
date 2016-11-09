@@ -150,6 +150,7 @@ def skip_duplicates(iterable, key=None, fingerprints=()):
     """
 
     fingerprints = fingerprints or set()
+    fingerprint = None  # needed on type errors unrelated to hashing
 
     try:
         # duplicate some code to gain perf in the most common case
@@ -245,6 +246,7 @@ def at_index(iterable, index):
         raise_from(IndexError('Index "%d" out of range' % index), e)
 
 
+# TODO: accept a default value if not value is found
 def first_true(iterable, func):
     # type: (Iterable[T], Callable) -> T
     """" Return the first item of the iterable for which func(item) == True.
@@ -256,6 +258,7 @@ def first_true(iterable, func):
     try:
         return next((x for x in iterable if func(x)))
     except StopIteration as e:
+        # TODO: Find a better error message
         raise_from(IndexError('No match for %s' % func), e)
 
 
@@ -309,11 +312,15 @@ def firsts(iterable, items=1, default=None):
 
     try:
         items = int(items)
-    except TypeError:
+    except (ValueError, TypeError):
         raise ValueError("items should be usable as an int but is currently "
                          "'{}' of type '{}'".format(items, type(items)))
+
+    # TODO: replace this so that it returns lasts()
     if items < 0:
-        raise ValueError(ww.f("items is {items} but should be greater than 0"))
+        raise ValueError(ww.f("items is {items} but should "
+                              "be greater than 0. If you wish to get the last "
+                              "items, use the lasts() function."))
 
     i = 0
     for i, item in zip(range(items), iterable):

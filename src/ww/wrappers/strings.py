@@ -145,7 +145,7 @@ from future.utils import raise_from
 try:
     from formatizer import LiteralFormatter
     FORMATTER = LiteralFormatter()
-except ImportError:
+except ImportError:  # pragma: no cover
     FORMATTER = str
 
 from six import with_metaclass
@@ -777,12 +777,13 @@ class StringWrapper(with_metaclass(MetaS, unicode)):  # type: ignore
             if default is not None:
                 return default
             raise ValueError(ww.f >> """
-                             '{vals!r}' cannot be converted to a boolean. Clean
+                             '{self!r}' cannot be converted to a boolean. Clean
                              your input or set the 'default' parameter to True
                              or False.
                              """)
 
-    if six.PY3:
+    # TODO: decide if we test all those no cover
+    if six.PY3:  # pragma: no cover
         def __repr__(self):
             """ Strings repr always prefixeds with 'u' even in Python 3 """
             return 'u{}'.format(super(StringWrapper, self).__repr__())

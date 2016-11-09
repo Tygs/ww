@@ -11,7 +11,7 @@ except NameError:
 # such as in Python 2
 try:
     import typing
-except ImportError:
+except ImportError:  # pragma: no cover
     class _:  # pylint: disable=too-few-public-methods
         TYPE_CHECKING = False
     locals()['typing'] = _
@@ -26,7 +26,7 @@ try:
     str_istr = Union[past_unicode, istr]
     str_or_callable = Union[past_unicode, Callable]
     str_istr_icallable = Union[past_unicode, Iterable[str_or_callable]]
-except ImportError:
+except ImportError:  # pragma: no cover
     # Declare types anyway so we can import them even when typing is not
     # installed
     if not typing.TYPE_CHECKING:
