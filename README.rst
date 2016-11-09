@@ -8,6 +8,9 @@ Wonderful Wrappers: unobtrusive wrappers improving Python builtins and more
 .. image:: https://readthedocs.org/projects/wonderful-wrappers/badge/?version=latest
     :target: http://wonderful-wrappers.readthedocs.io/en/latest/?badge=latest
     :alt: Documentation Status
+.. image:: https://badge.fury.io/py/ww.svg
+    :target: https://badge.fury.io/py/ww
+    :alt: Version published on the Python Package Index
 
 - **Compatibility:** CPython 2.7+/3.3+ and the last stable versions of pypy2.
 - **Platform:** Agnostic. But only tested on GNU/Linux for now.
