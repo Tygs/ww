@@ -58,8 +58,6 @@
             >>> gen = g(x * x for x in range(5))
             >>> gen
             <IterableWrapper generator>
-            >>> type(gen)
-            <class 'ww.wrappers.iterables.IterableWrapper'>
             >>> for x in gen: # you can iterate on g as expected
             ...     print(x)
             ...
@@ -168,9 +166,10 @@ from __future__ import (absolute_import, division, print_function)
 
 import itertools
 
-from collections import Iterable as IterableAbc, Iterator
+from collections import Iterator
 
-from ww.types import Any, Union, Callable, Iterable, T, T2  # noqa
+from ww.types import (Any, Union, Callable, Iterable, T, T2, Generic,   # noqa
+                      Iterator)
 from ww.utils import renamed_argument
 
 import builtins
@@ -189,7 +188,7 @@ from .base import BaseWrapper
 # TODO: merge minibelt
 
 
-class IterableWrapper(Iterator, IterableAbc, BaseWrapper):
+class IterableWrapper(Iterator[T], BaseWrapper, Generic[T]):
 
     def __init__(self, iterable, *more_iterables):
         # type: (Iterable, *Iterable) -> None
@@ -597,7 +596,7 @@ class IterableWrapper(Iterator, IterableAbc, BaseWrapper):
                 keyfunc=None,  # type: Callable[T]
                 reverse=False,  # type: bool
                 cast=tuple  # type: Callable[T2]
-                ):  # type: (...) -> IterableWrapper
+                ):  # type: (...) -> IterableWrapper[tuple[T, T2]]
         """ Group items according to one common feature.
 
             Create a generator yielding (group, grouped_items) pairs, with
@@ -741,8 +740,8 @@ class IterableWrapper(Iterator, IterableAbc, BaseWrapper):
             >>> from ww import g
             >>> my_g = g(range(12))
             >>> chunks = my_g.chunks(3)
-            >>> print(type(chunks))
-            <class 'ww.wrappers.iterables.IterableWrapper'>
+            >>> print(chunks)
+            <IterableWrapper generator>
             >>> chunks = chunks.list()
             >>> chunks[0]
             (0, 1, 2)

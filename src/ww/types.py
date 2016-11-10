@@ -17,7 +17,8 @@ except ImportError:  # pragma: no cover
     locals()['typing'] = _
 
 try:
-    from typing import Union, Iterable, Callable, Any, TypeVar, Hashable
+    from typing import (Union, Iterable, Callable, Any, TypeVar, Hashable,
+                        Generic, Iterator)
     T = TypeVar('T')
     T2 = TypeVar('T2')
     C = TypeVar('C', bound=Callable)
@@ -42,3 +43,6 @@ except ImportError:  # pragma: no cover
         I = None
         T2 = None
         Hashable = None
+        # Even more hacks to accept generic if typing is not installed
+        Generic = {T: type('GenericMock', (), {})}
+        Iterator = {T: type('IteratorMock', (), {})}
