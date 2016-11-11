@@ -1,5 +1,14 @@
 
 
+0.3
+======
+
+- Add s.unbreak(), proxy to ww.tools.strings.unbreak(), which remove lone
+  line breaks.
+- Add s.clean_spaces(), which applies texwrap.dedent(), unicode.strip()
+  and s.unbreak()
+- s >> and f >> apply clean_spaces() instead of just texwrap.dedent().
+
 0.2.1
 ======
 

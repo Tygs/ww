@@ -58,25 +58,24 @@
             >>> print(s('''
             ... This should be over indented.
             ... But it will not be.
-            ... Because dedent() calls textwrap.dedent() on the string.
-            ... ''').dedent())
+            ...
+            ... Because clean_spaces() remove uneeded spaces.
+            ... ''').clean_spaces())
+            This should be over indented. But it will not be.
             <BLANKLINE>
-            This should be over indented.
-            But it will not be.
-            Because dedent() calls textwrap.dedent() on the string.
-            <BLANKLINE>
+            Because clean_spaces() remove uneeded spaces.
 
         By overriding operators, we can provide some interesting syntaxic
         sugar, such as this shortcut for writting long dedented text::
 
             >>> print(s >> '''
-            ... Calling dedent() is overrated.
+            ... Calling clean_spaces() is overrated.
+            ...
             ... Overriding __rshift__ is much more fun.
             ... ''')
+            Calling clean_spaces() is overrated.
             <BLANKLINE>
-            Calling dedent() is overrated.
             Overriding __rshift__ is much more fun.
-            <BLANKLINE>
 
         Also we hacked something that looks like Python 3.6 f-string, but
         that works in Python 2.7 and 3.3+:
@@ -87,16 +86,17 @@
             u'Sweet, I can print locals: 1'
             >>> print(f >> '''
             ... Yes it works with long string too.
+            ...
             ... And globals, if you are into that kind
             ... of things.
+            ...
             ... But we have only {a} for now.
             ... ''')
-            <BLANKLINE>
             Yes it works with long string too.
-            And globals, if you are into that kind
-            of things.
-            But we have only 1 for now.
             <BLANKLINE>
+            And globals, if you are into that kind of things.
+            <BLANKLINE>
+            But we have only 1 for now.
 
         .. warning::
 
@@ -134,8 +134,7 @@ from __future__ import (absolute_import, division, print_function)
 # TODO: match.__repr__ should show match, groups, groupsdict in summary
 
 import inspect
-
-from textwrap import dedent
+import textwrap
 
 import six
 import chardet
@@ -160,18 +159,17 @@ from ww.types import (Union, unicode, str_istr, str_istr_icallable,  # noqa
 FORMATTER = LiteralFormatter()
 
 
-# TODO: s >> should do s().strip().dedent().fold()
 class MetaS(type):
-    """ Allow s >> 'text' as a shortcut to dedent strings
+    """ Allow s >> 'text' as a shortcut to apply clean_spaces() to strings.
 
         This is not something you should use directly. It's a metaclass
-        for s() StringWrapper objects and is used to override the
+        for StringWrapper objects and is used to override the
         operator >> on the StringWrapper class (not the object).
     """
 
     def __rshift__(self, other):
         # type (str) -> StringWrapper
-        """ Let you do s >> "a string" as a shortcut to s("a string").dedent()
+        """ Allow s >> "a string" as a shortcut to s("a string").clean_spaces()
 
             s is the class, not s(), which would be an instance.
 
@@ -179,7 +177,7 @@ class MetaS(type):
                 other: the string at the right of the '>>' operator.
 
             Returns:
-                The dedented string as wrapped in StringWrapper. Right now
+                clean_spaces(string), wrapped in StringWrapper. Right now
                 we always return StringWrapper, so subclassing won't work
                 if you want to override this.
 
@@ -193,17 +191,14 @@ class MetaS(type):
                 ...     This should be indented
                 ...     but it will not be
                 ... ''')
-                <BLANKLINE>
-                This should be indented
-                but it will not be
-                <BLANKLINE>
+                This should be indented but it will not be
         """
         # TODO: figure out how to allow this to work with subclasses
-        return StringWrapper(dedent(other))
+        return StringWrapper(ww.tools.strings.clean_spaces(other))
 
 
 class MetaF(type):
-    """ Allow f >> 'text' as a shortcut to dedent f-like-strings.
+    """ Allow f >> 'text' as a shortcut to clean_spaces() for f-like-strings.
 
         This is not something you should use directly. It's a metaclass
         for s() StringWrapper objects and is used to override the
@@ -211,7 +206,7 @@ class MetaF(type):
 
         This is the same as MetaS, but it wraps the string in f(), not in
         s(), meaning you can use the f-string compatible syntax inside
-        the string you wish to dedent.
+        the string you wish to apply clean_spaces() to.
 
         .. warning::
 
@@ -223,7 +218,7 @@ class MetaF(type):
 
     def __rshift__(self, other):
         # type (str) -> StringWrapper
-        """ Let you do f >> "a string" as a shortcut to f("a string").dedent()
+        """ Allow f >> "a string" as a shortcut to f("a string").clean_spaces()
 
             f is the class, not f(), which would be an instance.
 
@@ -231,7 +226,7 @@ class MetaF(type):
                 other: the string at the right of the '>>' operator.
 
             Returns:
-                The dedented string as wrapped in StringWrapper. Right now
+                clean_spaces(string) and wrapped in StringWrapper. Right now
                 we always return StringWrapper, so subclassing won't work
                 if you want to override this.
 
@@ -243,15 +238,11 @@ class MetaF(type):
                 >>> from ww import f
                 >>> var = "foo"
                 >>> print(f >> '''
-                ...     This should be indented
+                ...     It should be indented
                 ...     but it will not be.
                 ...     And you can use {var}.
                 ... ''')
-                <BLANKLINE>
-                This should be indented
-                but it will not be.
-                And you can use foo.
-                <BLANKLINE>
+                It should be indented but it will not be. And you can use foo.
 
             .. warning::
 
@@ -265,9 +256,9 @@ class MetaF(type):
         caller_locals = caller_frame.f_locals
         # TODO: figure out how to allow StringWrapper subclasses to work
         # with this
-        return StringWrapper(dedent(
+        return StringWrapper(
             FORMATTER.format(other, caller_globals, caller_locals)
-        ))
+        ).clean_spaces()
 
 
 # TODO: add normalize() (removes special caracters) and slugify
@@ -415,7 +406,6 @@ class StringWrapper(with_metaclass(MetaS, unicode)):  # type: ignore
         res = multireplace(self, patterns, substitutions, maxreplace, flags)
         return self.__class__(res)
 
-    # TODO: add a "strip_white_ends" and "remove_lone_linebreaks" param
     def dedent(self):
         # type: (...) -> StringWrapper
         """ Call texwrap.dedent() on the string, removing useless indentation
@@ -435,7 +425,81 @@ class StringWrapper(with_metaclass(MetaS, unicode)):  # type: ignore
                 but it will not be
                 <BLANKLINE>
         """
-        return self.__class__(dedent(self))
+        return self.__class__(textwrap.dedent(self))
+
+    def unbreak(self):
+        # type: (...) -> StringWrapper
+        r""" Remove lone line breaks.
+
+            A lone line break is a line break not next to another line break.
+
+            Lone lines breaks at the begining or at the end are removed. Any
+            others are replaced with a space.
+
+            Returns:
+                The strings with lone line breaks removed, wrapped
+                in StringWrapper.
+
+            Example:
+
+                >>> from ww import s
+                >>> print(s('''It should have line breaks
+                ... but it will not.
+                ... ''').unbreak())
+                It should have line breaks but it will not.
+                >>> print(s('''Multiple line breaks are not stripped.
+                ...
+                ... So you can create paragraphes by breaking
+                ... twice.''').unbreak())
+                Multiple line breaks are not stripped.
+                <BLANKLINE>
+                So you can create paragraphes by breaking twice.
+        """
+        return self.__class__(ww.tools.strings.unbreak(self))
+
+    def clean_spaces(self):
+        # type: (...) -> StringWrapper
+        r""" Remove unecessary string indentations, spaces and linebreaks.
+
+            This is espacially useful when you have long strings
+            that you wish to break other several lines but don't want it
+            to be indented or have line breaks. E.G: exception messages.
+
+            You can use the f >> or s >> as shortcuts to this method.
+
+            Returns:
+                The strings without unecessary indentation, with both ends
+                striped of unprintable caracters with lone line breaks removed.
+
+            Example:
+
+                >>> from ww import s
+                >>> print(s('''
+                ...     It should be indented and with a line break
+                ...     but it will not be.
+                ... ''').clean_spaces())
+                It should be indented and with a line break but it will not be.
+                >>> print(s('''
+                ...     Multiple line breaks are not stripped.
+                ...
+                ...     So you can create paragraphes by breaking
+                ...     twice. Also:
+                ...
+                ...         Desired indentation is not removed.
+                ...
+                ... ''').clean_spaces())
+                Multiple line breaks are not stripped.
+                <BLANKLINE>
+                So you can create paragraphes by breaking twice. Also:
+                <BLANKLINE>
+                    Desired indentation is not removed.
+                >>> print(s >> '''
+                ...     s() implements >> as a shorcut to
+                ...     s(string).clean_spaces().
+                ... ''')  # shortcut version
+                s() implements >> as a shorcut to s(string).clean_spaces().
+        """
+        return self.__class__(ww.tools.strings.clean_spaces(self))
 
     def upper(self):
         # type: (...) -> StringWrapper
@@ -807,10 +871,7 @@ class FStringWrapper(with_metaclass(MetaF)):  # type: ignore
             ...     Dedent also works.
             ...     See: {name}
             ... ''')
-            <BLANKLINE>
-            Dedent also works.
-            See: Foo
-            <BLANKLINE>
+            Dedent also works. See: Foo
 
         Since it returns a Strings wrapper, you can then look up s()
         documentation for the rest of what you can do.

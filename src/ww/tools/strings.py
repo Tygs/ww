@@ -34,6 +34,7 @@
 from __future__ import absolute_import, division, print_function
 
 import re
+import textwrap
 
 from past.builtins import basestring
 
@@ -298,3 +299,79 @@ def multireplace(string,  # type: unicode
             break
 
     return string
+
+
+def unbreak(string):
+    # type: (str) -> str
+    r""" Remove lone line breaks.
+
+        A lone line break is a line break not next to another line break.
+
+        Lone lines breaks at the begining or at the end are removed. Any others
+        are replaced with a space.
+
+        Returns:
+            The strings with lone line breaks removed.
+
+        Example:
+
+            >>> from ww.tools.strings import unbreak
+            >>> print(unbreak('''It should have line breaks
+            ... but it will not.
+            ... '''))
+            It should have line breaks but it will not.
+            >>> print(unbreak('''Multiple line breaks are not stripped.
+            ...
+            ... So you can create paragraphes by breaking
+            ... twice.'''))
+            Multiple line breaks are not stripped.
+            <BLANKLINE>
+            So you can create paragraphes by breaking twice.
+    """
+    # Remove lone line break at the begining
+    string = re.sub(r'^[ \t]*\n[ \t]*(?!\n)', '', string)
+
+    # Remove lone line break at the end
+    string = re.sub(r'(?<!\n)[ \t]*\n[ \t]*$', '', string)
+
+    # Remplace line line breaks anywhere esle with a space
+    return re.sub(r'(?<!\n)[ \t]*\n[ \t]*(?!\n)', ' ', string)
+
+
+def clean_spaces(string):
+    # type: (str) -> str
+    r""" Remove unecessary string indentations, spaces and linebreaks.
+
+        Apply unicode.strip(), textwrap.dedent() and ww.tools.string.unbreak().
+
+        Args:
+            string: The string to clean.
+
+        Returns:
+            The strings without unecessary indentation, with both ends
+            striped of unprintable caracters with lone line breaks removed.
+
+        Example:
+
+            >>> from ww.tools.strings import clean_spaces
+            >>> print(clean_spaces('''
+            ...     It should be indented and with a line break
+            ...     but it will not be.
+            ... '''))
+            It should be indented and with a line break but it will not be.
+            >>> print(clean_spaces('''
+            ...     Multiple line breaks are not stripped.
+            ...
+            ...     So you can create paragraphes by breaking
+            ...     twice. Also:
+            ...
+            ...         Desired indentation is not removed.
+            ...
+            ... '''))
+            Multiple line breaks are not stripped.
+            <BLANKLINE>
+            So you can create paragraphes by breaking twice. Also:
+            <BLANKLINE>
+                Desired indentation is not removed.
+    """
+    return unbreak(textwrap.dedent(string).strip())

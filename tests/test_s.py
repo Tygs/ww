@@ -174,3 +174,30 @@ def test_tobool():
 
     with pytest.raises(ValueError):
         s('foo').to_bool()
+
+
+def test_unbreak():
+
+    assert s('''
+      a
+      b
+
+      c
+    ''').unbreak() == "a b\n\n      c"
+
+
+def test_clean_spaces():
+
+    assert s('''
+      a
+      b
+
+      c
+    ''').clean_spaces() == "a b\n\nc"
+
+    assert s >> '''
+      a
+      b
+
+      c
+    ''' == "a b\n\nc"
