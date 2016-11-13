@@ -113,13 +113,13 @@
 
 from __future__ import (absolute_import, division, print_function)
 
+# TODO: 'partition', rsplit, splitlines
 # TODO : flags can be passed as strings. Ex: s.search('regex', flags='ig')
 # TODO : make s.search(regex) return a wrapper with __bool__ evaluating to
 # false if no match instead of None and allow default value for group(x)
 # also allow match[1] to return group(1) and match['foo'] to return
 # groupdict['foo']
 # TODO .groups would be a g() object
-# TODO: .pp() to pretty_print
 # TODO: override slicing to allow callables
 # TODO: provide "strip_comments" ?
 # TODO: provide from_json() / to_json()
@@ -136,9 +136,13 @@ from __future__ import (absolute_import, division, print_function)
 import inspect
 import textwrap
 
+from ww.utils import wraps
+
 import six
 import chardet
 
+from six import with_metaclass
+from future.utils import bind_method
 from future.utils import raise_from
 
 try:
@@ -147,16 +151,22 @@ try:
 except ImportError:  # pragma: no cover
     FORMATTER = str
 
-from six import with_metaclass
-
 import ww
-from ww.tools.strings import multisplit, multireplace
+from ww.tools.strings import (multisplit, multireplace, casefold, map_format,
+                              make_translation_table, translate_caracters)
+from ww.utils import renamed_argument
 from ww.types import (Union, unicode, str_istr, str_istr_icallable,  # noqa
                       C, I, Iterable, Callable, Any)
 
-# TODO: make sure we copy all methods from str but return s()
-
 FORMATTER = LiteralFormatter()
+
+# List of methods returning unicode strings that we want to automatically
+# convert to return StringWrapper. We plug them in a loop at the end
+# of this file, but before we make sure the method exist on
+# the current unicode object
+AUTO_METHODS = {'capitalize', 'center', 'expandtabs', 'ljust', 'lower',
+                'lstrip', 'rjust', 'rstrip', 'swapcase', 'title', 'upper',
+                'zfill', 'strip'} & set(dir(unicode))
 
 
 class MetaS(type):
@@ -265,7 +275,6 @@ class MetaF(type):
 # (normalize + slug)
 # TODO: refactor methods to be only wrappers
 #       for functions from a separate module
-# TODO: override capitalize, title, upper, lower, etc
 # TODO: inherit from BaseWrapper
 class StringWrapper(with_metaclass(MetaS, unicode)):  # type: ignore
     """
@@ -500,23 +509,6 @@ class StringWrapper(with_metaclass(MetaS, unicode)):  # type: ignore
                 s() implements >> as a shorcut to s(string).clean_spaces().
         """
         return self.__class__(ww.tools.strings.clean_spaces(self))
-
-    def upper(self):
-        # type: (...) -> StringWrapper
-        """ Call str.upper() on the string, making it uppercase.
-
-            Returns:
-                The upper cased string, wrapped in StringWrapper.
-
-            Example:
-
-                >>> from ww import s
-                >>> print(s('Foo').upper())
-                FOO
-                >>> type(s('Foo').upper())
-                <class 'ww.wrappers.strings.StringWrapper'>
-        """
-        return self.__class__(unicode.upper(self))
 
     # TODO: add the same features as getitems on g()
     def __getitem__(self, index):
@@ -846,11 +838,239 @@ class StringWrapper(with_metaclass(MetaS, unicode)):  # type: ignore
                              or False.
                              """)
 
-    # TODO: decide if we test all those no cover
+    def casefold(self):
+        # type: (...) -> StringWrapper
+        u""" Make the string lower case, even with unicode caracters.
+
+            s.lower() works with ASCII caracters only. s.casefold() will
+            work on unicode caracters. Python 2 doesn't have unicode.casefold()
+            but s.casefold() works with all supported versions.
+
+            Returns:
+                A lower case strings, wrapped in StringWrapper.
+
+            Example:
+
+                >>> from ww import s
+                >>> s("AbCd").casefold() == s("AbCd").lower() == "abcd"
+                True
+                >>> folded = s(u"ΣίσυφοςﬁÆ").casefold()
+                >>> print(folded, ':', len(folded))
+                σίσυφοσfiæ : 10
+                >>> lowercased = s(u"ΣίσυφοςﬁÆ").lower()
+                >>> print(lowercased, ':', len(lowercased))
+                σίσυφοςﬁæ : 9
+        """
+        return self.__class__(casefold(self))
+
+    @classmethod
+    @renamed_argument(('x', 'frm', 'to', 'y', 'z'),
+                      ('caracters', 'caracters',
+                       'substitutions', 'substitutions',
+                       'to_delete'))
+    def maketrans(cls, caracters, substitutions=None, to_delete=None):
+        # type: (Union[str, dict], str, str) -> ww.d
+        """ Create a dictionary containing caracters and their replacements
+
+            This is the same as Python 3's str.maketrans (minus the argument
+            names) and similar to Python 2 string.maketrans. The goal is to
+            create a dict you can pass to s.translate to replace caracters
+            by others or remove caracters.
+
+            You can build this dictionary by hand, maketrans is just a shortcut
+            to do it.
+
+            Args:
+                caracters: A string containing all the caracters you want to
+                           replace. Or a dictionary with the keys being the
+                           caracters you want to replace, and the value the
+                           caracters to replace them with.
+                substitutions: a string containing all the caracters you want
+                               to use as replacements. This string must be of
+                               the same length of the string you used
+                               in the `caracters` parameters.
+                               One exception: you can pass an empty string or a
+                               single carater to replace all caracters from
+                               `caracters` with it.
+                               If you passed a dict as `caracters`, don't use
+                               `substitutions`.
+                to_delete: A string containing caracters to remove. This will
+                           map the caracters to None, and is an alternative to
+                           passing an empty string in `substitutions`. This
+                           is essentially to keep the compatibility with the
+                           Python 3 maketrans signature.
+
+            Returns:
+                A DictWrapper mapping caracters to be replace with their
+                replacements.
+
+            Example:
+
+                >>> from ww import s
+                >>> s.maketrans(u'abc', u'xyw') # doctest: +ALLOW_UNICODE
+                {97: u'x', 98: u'y', 99: u'w'}
+                >>> s.maketrans(u'abc', u'')
+                {97: None, 98: None, 99: None}
+                >>> s.maketrans(u'abc', u'z') # doctest: +ALLOW_UNICODE
+                {97: u'z', 98: u'z', 99: u'z'}
+                >>> s.maketrans({u'a': u"x", u"b": u"y"}) # doctest: +ALLOW_UNICODE
+                {97: u'x', 98: u'y'}
+                >>> s.maketrans(u'abc', u'xyw', u'z') # doctest: +ALLOW_UNICODE
+                {97: u'x', 98: u'y', 99: u'w', 122: None}
+
+        """  # noqa
+        table = ww.d()
+        table.update(make_translation_table(caracters, substitutions))
+        if to_delete is not None:
+            if not isinstance(to_delete, unicode):
+                raise TypeError(ww.f >> """
+                    "to_delete" must be a unicode string. You passed
+                    {to_delete} of type {type(to_delete)}
+                """)
+            table.update(make_translation_table(to_delete, ''))
+        return table
+
+    @renamed_argument('table', 'caracters')
+    def translate(self, caracters, substitutions=None):
+        # type: (Union[str, dict], str) -> StringWrapper
+        """ Do a caracter by caracter substitution in the string
+
+            Like unicode.translate(). Allow passing a translation table as
+            usual (built manually or with s.maketrans()), but also
+            alternatively passing caracters to build the translation table
+            on the fly. The later is handy if you need it only once.
+
+            You may want to use it instead of s.replace() as it will be
+            faster, or if you already have something providing a mapping table,
+            or for backward compatibility with some code using it.
+
+            However, usually s.replace() is easier to use.
+
+            Args:
+
+                string: the string to apply the substitution on.
+                caracters: either the translation table (a dict with the keys
+                           being the ord() of the caracters to replace, and the
+                           values being the replacements), or a string
+                           containing the caracters to replace. In the later
+                           case, those caracters will be used as the key of the
+                           translation table.
+                           If this is explicitly set to None, then the
+                           caracters in `substitution` will be removed from the
+                            string.
+                substitutions: a string containing all the caracters you want
+                               to use as replacements.
+                               Use it conly if `caracters` is a string and
+                               not a table, as this will be used as values to
+                               build the translation table and
+                               hence will be the replaccements for what's in
+                               `caracters`.
+                               This string must be of
+                               the same length of the string you used
+                               in the `caracters` parameters.
+                               One exception: you can pass an empty string or a
+                               single carater to replace all caracters from
+                               `caracters` with it.
+
+            Returns:
+                A new string with caracters replaced, wrapped in
+                StringWrapper.
+
+            Example:
+
+                >>> from ww import s
+                >>> table = s.maketrans(u'abc', u'xyw')
+                >>> table # doctest: +ALLOW_UNICODE
+                {97: u'x', 98: u'y', 99: u'w'}
+                >>> print(s(u'cat').translate(table))
+                wxt
+                >>> print(s(u'cat').translate(u'abc', u'xyw'))
+                wxt
+                >>> print(s(u'cat').translate(None, u'a'))
+                ct
+                >>> print(s(u'cat').translate(u'abc', u'z'))
+                zzt
+                >>> print(s(u'cat').translate(u'abc', u''))
+                t
+        """
+        string = translate_caracters(self, caracters, substitutions)
+        return self.__class__(string)
+
+    def format_map(self, mapping):
+        # type: (dict) -> StringWrapper
+        """ Almost like unicode.format(**mapping).
+
+            You will rarely need that, but it doesn't produce a new dictionary
+            like s.format(**mapping) does, which means:
+
+            - it's a bit faster;
+            - you can pass a custom mapping with a specific behavior such as
+              overriding __missing__.
+
+            Args:
+                string: the string to format, containing the markers.
+                mapping: A mapping, such as a dict, with the keys being the
+                         name of the markers, and the values being the value to
+                         be inserted at the marker.
+
+            Returns:
+                A formatted string, wrapper in a StringWrapper.
+
+            Example:
+
+                >>> from ww import s
+                >>> print(s("{foo}").format_map({"foo": "bar"}))
+                bar
+        """
+        return self.__class__(map_format(self, mapping))
+
+    # TODO: decide if we test all those "no cover"
     if six.PY3:  # pragma: no cover
         def __repr__(self):
             """ Strings repr always prefixeds with 'u' even in Python 3 """
             return 'u{}'.format(super(StringWrapper, self).__repr__())
+
+
+# Add methods with the result being converted automatically to StringWrapper
+for name in AUTO_METHODS:
+
+    # Get the original unicode method, such as unicode.title, unicode.upper...
+    method = getattr(unicode, name)
+
+    # Use a factory to have a paramter with the same name as the local
+    # variable and avoid a closure which would always reference the same
+    # method
+    def factory(method):
+
+        # This wraps the original unicode method so it returns a StringWrapper
+        @wraps(method)
+        def wrapper(*args, **kwargs):
+            # type(...) -> StringWrapper
+            return StringWrapper(method(*args, **kwargs))
+
+        return wrapper
+
+    # Build the wrapper with the proper method passed as a reference
+    wrapper = factory(method)
+
+    # Make sure we have a docstring stating this is an automatic method, but
+    # include the original docstring in it just in case.
+    wrapper.__doc__ = str(StringWrapper(  # noqa
+    """ Same as unicode.{name}(), but return a StringWrapper
+
+    This method has been converted automatically, but the behavior is exactly
+    the same than the original method, except we wrap the result in
+    a StringWrapper.
+
+    Here is the original docstring:
+
+    '''
+    {method.__doc__}
+    '''
+    """).format().dedent())
+
+    # Attach our new method to s()
+    bind_method(StringWrapper, name, wrapper)
 
 
 # TODO: make sure each class call self._class instead of s(), g(), etc

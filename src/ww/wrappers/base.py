@@ -23,5 +23,5 @@ class BaseWrapper(object):
 
     # TODO: offer optionnaly a better pprint
     # TODO: define all arguments explicitly
-    def pprint(self, *args, **kwargs):
+    def pp(self, *args, **kwargs):
         return pprint(self, *args, **kwargs)

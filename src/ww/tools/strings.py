@@ -34,13 +34,15 @@
 from __future__ import absolute_import, division, print_function
 
 import re
+import string
 import textwrap
 
 from past.builtins import basestring
 
 import ww
 from ww.utils import require_positive_number, ensure_tuple
-from ww.types import unicode, str_istr, str_istr_icallable, C, I  # noqa
+from ww.types import Union, unicode, str_istr, str_istr_icallable, C, I  # noqa
+
 
 REGEX_FLAGS = {
     'm': re.MULTILINE,
@@ -70,6 +72,19 @@ def parse_re_flags(flags):
         return bflags
 
     return flags
+
+
+try:
+    from py2casefold import casefold
+except ImportError:
+    casefold = unicode.casefold
+
+try:
+    format_map = str.format_map
+except AttributeError:  # pragma: no cover
+    def format_map(to_format, mapping):
+        """ Just a polyfill for the missing feature in Python 2 """
+        return string.Formatter().vformat(to_format, None, mapping)
 
 
 # kwargs allow compatibiliy with 2.7 and 3 since you can't use
@@ -375,3 +390,183 @@ def clean_spaces(string):
                 Desired indentation is not removed.
     """
     return unbreak(textwrap.dedent(string).strip())
+
+
+def make_translation_table(caracters, substitutions=None):
+    # type: (Union[str, dict], str) -> dict
+    u""" Create a dictionary containing caracters and their replacements
+
+        This is the simlar to Python 3's str.maketrans, and Python 2
+        string.maketrans. The goal is to create a dict you can pass to
+        unicode.translate to replace caracters by others or remove caracters.
+
+        You can build this dictionary by hand, make_translation_table is
+        just a shortcut to do it.
+
+        Args:
+            caracters: A string containing all the caracters you want to
+                       replace. Or a dictionary with the keys being the
+                       caracters you want to replace, and the value the
+                       caracters to replace them with.
+            substitutions: a string containing all the caracters you want
+                           to use as replacements. This string must be of
+                           the same length of the string you used
+                           in the `caracters` parameters.
+                           One exception: you can pass an empty string or a
+                           single carater to replace all caracters from
+                           `caracters` with it.
+                           If you passed a dict as `caracters`, don't use
+                           `substitutions`.
+
+        Returns:
+            A dict mapping caracters to be replace with their replacements.
+
+        Example:
+
+            >>> from ww.tools.strings import make_translation_table
+            >>> make_translation_table(u'abc', u'xyw') # doctest: +ALLOW_UNICODE
+            {97: u'x', 98: u'y', 99: u'w'}
+            >>> make_translation_table(u'abc', u'')
+            {97: None, 98: None, 99: None}
+            >>> make_translation_table(u'abc', u'z') # doctest: +ALLOW_UNICODE
+            {97: u'z', 98: u'z', 99: u'z'}
+            >>> make_translation_table({u'a': u"x", u"b": u"y"}) # doctest: +ALLOW_UNICODE
+            {97: u'x', 98: u'y'}
+    """  # noqa
+    if isinstance(caracters, unicode):
+        if substitutions is None:
+            raise ValueError(ww.f >> """
+                If you pass a string for "caracters", you need to pass
+                "substitutions".
+            """)
+
+        caracters_ord = (ord(char) for char in caracters)
+        if substitutions == "":
+            return dict.fromkeys(caracters_ord)  # type: ignore
+
+        if len(substitutions) == 1:
+            return dict(zip(caracters_ord, substitutions * len(caracters)))
+
+        if len(substitutions) != len(caracters):
+            raise ValueError(ww.f >> """
+                The string you passed for 'caracters' has {len(caracters)}
+                caracters while the string you passed for 'substitutions' has
+                {len(substitutions)} caracters. They must be the same length.
+            """)
+
+        return dict(zip(caracters_ord, substitutions))
+
+    try:
+        return dict((ord(k), v) for k, v in caracters.items())  # type: ignore
+    except (AttributeError):
+        raise ValueError(ww.f >> """
+            You passed "{caracters}" as value for the "caracters", which is not
+            a string or a dictionary compatible type.
+        """)
+
+
+def translate_caracters(string, caracters, substitutions=None):
+    # type: (str, Union[str, dict], str) -> str
+    u""" Do a caracter by caracter substitution in the string
+
+        Like unicode.translate(). Allow passing a translation table as usual
+        (built manually or with make_translation_table()), but
+        also alternatively passing caracters to build the translation table
+        on the fly. The last one is handy if you need it only once.
+
+        You may want to use it instead of multireplace() as it will be faster,
+        or if you already have something providing a mapping table, or
+        for backward compatibility with some code using it.
+
+        However, usually multireplace is easier to use.
+
+        Args:
+            string: the string to apply the substitution on.
+            caracters: either the translation table (a dict with the keys
+                       being the ord() of the caracters to replace, and the
+                       values being the replacements), or a string containing
+                       the caracters to replace. In the later case,
+                       those caracters will be used as the key of the
+                       translation table.
+                       If this is explicitly set to None, then the caracters in
+                       `substitution` will be removed from the string.
+            substitutions: a string containing all the caracters you want
+                           to use as replacements.
+                           Use it conly if `caracters` is a string and
+                           not a table, as this will be used as values to
+                           build the translation table and
+                           hence will be the replaccements for what's in
+                           `caracters`.
+                           This string must be of
+                           the same length of the string you used
+                           in the `caracters` parameters.
+                           One exception: you can pass an empty string or a
+                           single carater to replace all caracters from
+                           `caracters` with it.
+
+        Returns:
+            A new string with caracters replaced.
+
+        Example:
+
+            >>> from ww.tools.strings import translate_caracters
+            >>> from ww.tools.strings import make_translation_table
+            >>> table = make_translation_table(u'abc', u'xyw')
+            >>> table  # doctest: +ALLOW_UNICODE
+            {97: u'x', 98: u'y', 99: u'w'}
+            >>> print(translate_caracters(u'cat', table))
+            wxt
+            >>> print(translate_caracters(u'cat', u'abc', u'xyw'))
+            wxt
+            >>> print(translate_caracters(u'cat', None, u'a'))
+            ct
+            >>> print(translate_caracters(u'cat', u'abc', u'z'))
+            zzt
+            >>> print(translate_caracters(u'cat', u'abc', u''))
+            t
+
+    """
+
+    # substitue caracters
+    if caracters is None:
+
+        if not substitutions or not isinstance(substitutions, unicode):
+            raise ValueError(ww.f >> """
+                If you pass None for "caracters", you need to pass a non
+                empty unicode string for substitutions.
+            """)
+
+        caracters = make_translation_table(substitutions, '')
+
+    elif isinstance(caracters, unicode):
+        caracters = make_translation_table(caracters, substitutions)
+
+    return unicode.translate(string, caracters)
+
+
+def map_format(string, mapping):
+    """ Almost like unicode.format(**mapping).
+
+        You will rarely need that, but it doesn't produce a new dictionary
+        like unicode.format(**mapping) does, which means:
+
+        - it's a bit faster;
+        - you can pass a custom mapping with a specific behavior such as
+          overriding __missing__.
+
+        Args:
+            string: the string to format, containing the markers.
+            mapping: A mapping, such as a dict, with the keys being the name
+                     of the markers, and the values being the value to
+                     be inserted at the marker.
+
+        Returns:
+            A formatted string.
+
+        Example:
+
+            >>> from ww.tools.strings import map_format
+            >>> print(map_format("{foo}", {"foo": "bar"}))
+            bar
+    """
+    return format_map(string, mapping)

@@ -9,6 +9,7 @@ import re
 import pytest
 
 from ww import s, g, f
+from ww.tools.strings import make_translation_table
 
 
 def test_lshift():
@@ -128,6 +129,8 @@ def test_format():
     assert isinstance(string.format(foo=foo, bar=bar), s)
     assert string.format(foo=foo, bar=bar) == "1 1.0"
 
+    assert string.format_map(dict(foo=foo, bar=bar)) == "1 1.0"
+
     assert f(string) == "1 1.0"
     assert isinstance(f(string), s)
     assert f('{foo} {bar[0]:.1f}') == "1 1.0"
@@ -201,3 +204,58 @@ def test_clean_spaces():
 
       c
     ''' == "a b\n\nc"
+
+
+def test_capitalize():
+    assert s('Foo bar').capitalize() == 'Foo bar'.capitalize()
+
+
+def test_casefold():
+    assert s("ΣίσυφοςﬁÆ").casefold() == "σίσυφοσfiæ"
+    assert s("ΣΊΣΥΦΟσFIæ").casefold() == "σίσυφοσfiæ"
+
+
+def test_simple_automethods():
+
+    simple_auto_methods = ('capitalize', 'lower', 'upper', 'title',
+                           'strip', 'lstrip', 'rstrip', 'swapcase',
+                           'expandtabs')
+
+    string = '    AbCd\t'
+    sstring = s(string)
+    for name in simple_auto_methods:
+        sstring_method_result = getattr(sstring, name)()
+        assert getattr(string, name)() == sstring_method_result
+        assert isinstance(sstring_method_result, s)
+
+
+def test_padding():
+
+    padding_methods = ('center', 'rjust', 'ljust', 'zfill')
+
+    string = 'abcd'
+    sstring = s(string)
+    for name in padding_methods:
+        sstring_method_result = getattr(sstring, name)(10)
+        assert getattr(string, name)(10) == sstring_method_result
+        assert isinstance(sstring_method_result, s)
+
+
+def test_translate():
+
+    assert s.maketrans('abc', 'xyw') == {97: 'x', 98: 'y', 99: 'w'}
+    assert s.maketrans('abc', '') == {97: None, 98: None, 99: None}
+    assert s.maketrans('abc', 'z') == {97: 'z', 98: 'z', 99: 'z'}
+    assert s.maketrans({'a': "x", "b": "y"}) == {97: 'x', 98: 'y'}
+    assert s.maketrans('abc', 'xyw', 'z') == {97: 'x', 98: 'y',
+                                              99: 'w', 122: None}
+
+    with pytest.raises(ValueError):
+        make_translation_table(1)
+
+    table = s.maketrans('abc', 'xyw')
+    assert s('cat').translate(table) == 'wxt'
+    assert s('cat').translate('abc', 'xyw') == 'wxt'
+    assert s('cat').translate(None, 'a') == 'ct'
+    assert s('cat').translate('abc', 'z') == 'zzt'
+    assert s('cat').translate('abc', '') == 't'

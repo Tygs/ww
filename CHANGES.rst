@@ -7,7 +7,42 @@
   line breaks.
 - Add s.clean_spaces(), which applies texwrap.dedent(), unicode.strip()
   and s.unbreak()
+- add s.maketrans(), similar to Python 3 unicode.maketrans() and Python 2
+  string.maketrans(). But with a unified API against 2 and 3 and some
+  additional shorthands.
+- add s.translate(), similar to unicode.translate() but with some
+  additional shorthands such as one time translation table build.
+- all those new methods have a functional equivalent in ww.tools.string.
+- Add s.casefold(), same as Python 3's unicode.casefold() (lower case
+  for unicode), but works in python 2 as well. This means adding a
+  dependency to py2casefold.
+- add s.format_map() so that you have the same s() API in Python 2 and 3.
 - s >> and f >> apply clean_spaces() instead of just texwrap.dedent().
+- BaseWrapper.pprint() has been renamed pp().
+- Generate automatic wrappers for common methods of s() so they return
+  an s() object. Automatic wrappers include:
+
+    * capitalize
+    * center
+    * expandtabs
+    * format_map
+    * ljust
+    * lower
+    * lstrip
+    * maketrans
+    * rjust
+    * rstrip
+    * swapcase
+    * title
+    * translate
+    * upper
+    * zfill
+
+    This also means s() should now have full parity with unicode strings
+    and a unified compatible API in Python 2 and 3.
+
+- ww.utils now contains a backport of Python 3.5 functools.wraps(), used
+  in ww.wrappers.strings.
 
 0.2.1
 ======

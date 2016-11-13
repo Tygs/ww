@@ -326,6 +326,6 @@ def test_str():
 
 
 def test_pprint(capsys):
-    g(range(2)).pprint()
+    g(range(2)).pp()
     out, err = capsys.readouterr()
     assert "<IterableWrapper generator>" in out

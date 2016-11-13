@@ -1,5 +1,7 @@
+# coding: utf-8
 
 import re
+import sys
 import setuptools
 
 
@@ -36,6 +38,22 @@ def get_requirements(path):
 
 requirements, dep_links = get_requirements('requirements.txt')
 dev_requirements, dev_dep_links = get_requirements('dev-requirements.txt')
+extra_requirements = {
+    "dev": dev_requirements
+}
+
+# Conditionally add compatibility modules for older Python versions:
+
+# For source dists
+python_version = sys.version_info[0:2]
+if python_version < (3, 5):
+    requirements.append("typing")  # mypy types
+if python_version < (3, 3):
+    requirements.append("py2casefold")  # unicode.casefold()
+
+# For wheels
+extra_requirements[":python_version<'3.5'"] = ["typing"]
+extra_requirements[":python_version<'3.0'"] = ["py2casefold"]
 
 setuptools.setup(
     name='ww',

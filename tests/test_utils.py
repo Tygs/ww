@@ -26,3 +26,6 @@ def test_renamed_argument():
 
     with pytest.raises(TypeError):
         foo(old_bar=1)
+
+    with pytest.raises(ValueError):
+        renamed_argument('old_bar', ('bar', 'foo'))(foo)
