@@ -153,7 +153,8 @@ except ImportError:  # pragma: no cover
 
 import ww
 from ww.tools.strings import (multisplit, multireplace, casefold, map_format,
-                              make_translation_table, translate_caracters)
+                              make_translation_table, translate_caracters,
+                              autojoin)
 from ww.utils import renamed_argument
 from ww.types import (Union, unicode, str_istr, str_istr_icallable,  # noqa
                       C, I, Iterable, Callable, Any)
@@ -651,7 +652,7 @@ class StringWrapper(with_metaclass(MetaS, unicode)):  # type: ignore
         return self.__class__(str_res)
 
     def join(self, iterable, formatter=lambda s, t: t.format(s),
-             template="{}"):
+             template=u"{}"):
         # type: (Iterable, Callable, str) -> ww.s.StringWrapper
         """ Join every item of the iterable into a string.
 
@@ -685,19 +686,18 @@ class StringWrapper(with_metaclass(MetaS, unicode)):  # type: ignore
             Example:
 
                 >>> from ww import s
-                >>> s('|').join(range(3))
-                u'0|1|2'
+                >>> print(s(u'|').join(range(3)))
+                0|1|2
                 >>> to_string = lambda s, t: str(s) * s
-                >>> print(s(',').join(range(1, 4), formatter=to_string))
+                >>> print(s(u',').join(range(1, 4), formatter=to_string))
                 1,22,333
-                >>> print(s('\\n').join(range(3), template='- {}'))
+                >>> print(s(u'\\n').join(range(3), template=u'- {}'))
                 - 0
                 - 1
                 - 2
 
         """
-        formatted_iterable = (formatter(st, template) for st in iterable)
-        return self.__class__(unicode.join(self, formatted_iterable))
+        return self.__class__(autojoin(iterable, self, formatter, template))
 
     @classmethod
     def from_bytes(cls, byte_string, encoding=None, errors='strict'):

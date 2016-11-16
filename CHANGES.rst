@@ -43,6 +43,7 @@
 
 - ww.utils now contains a backport of Python 3.5 functools.wraps(), used
   in ww.wrappers.strings.
+- s.join() now proxies to ww.tools.strings.autojoin().
 
 0.2.1
 ======

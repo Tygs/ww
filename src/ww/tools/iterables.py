@@ -342,6 +342,7 @@ def lasts(iterable, items=1, default=None):
     for y in last_items:
         yield y
 
+
 # reduce is technically the last value of accumulate
 # use ww.utils.EMPTY instead of EMPTY
 # Put in the doc than scan=fold=accumulare and reduce=accumulate

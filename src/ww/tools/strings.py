@@ -41,7 +41,8 @@ from past.builtins import basestring
 
 import ww
 from ww.utils import require_positive_number, ensure_tuple
-from ww.types import Union, unicode, str_istr, str_istr_icallable, C, I  # noqa
+from ww.types import (Union, unicode, str_istr, Callable,  # noqa
+                      str_istr_icallable, C, I, Iterable)
 
 
 REGEX_FLAGS = {
@@ -570,3 +571,54 @@ def map_format(string, mapping):
             bar
     """
     return format_map(string, mapping)
+
+
+def autojoin(iterable, string, formatter=lambda s, t: t.format(s),
+             template="{}"):
+    # type: (Iterable, str, Callable, str) -> str
+    """ Join every item of the iterable into a string.
+
+        This is just like `unicode.join()` but with auto cast to a string.
+        If you dislike auto cast, `formatter` and `template` let you control
+        how to format each element.
+
+        Args:
+            iterable: the iterable with elements you wish to join.
+
+            string: the string to place between each element.
+
+            formatter: a the callable returning a representation of the
+                       current element as a string. It will be called on
+                       each element, with the element being past as the
+                       first parameter and the value of `template` as the
+                       second parameter.
+                       The default value is to return::
+
+                           template.format(element)
+
+            template: a string template using the .format() syntax to be
+                      used by the formatter callable.
+                      The default value is "{}", so that the formatter can
+                      just return::
+
+                            "{}".format(element)
+
+
+        Returns:
+            The joined elements.
+
+        Example:
+
+            >>> from ww.tools.strings import autojoin
+            >>> print(autojoin(range(3), u'|'))
+            0|1|2
+            >>> to_string = lambda s, t: str(s) * s
+            >>> print(autojoin(range(1, 4), u',', formatter=to_string))
+            1,22,333
+            >>> print(autojoin(range(3), u'\\n', template=u'- {}'))
+            - 0
+            - 1
+            - 2
+
+    """
+    return unicode.join(string, (formatter(st, template) for st in iterable))
