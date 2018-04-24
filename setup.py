@@ -48,12 +48,14 @@ extra_requirements = {
 python_version = sys.version_info[0:2]
 if python_version < (3, 5):
     requirements.append("typing")  # mypy types
-if python_version < (3, 3):
-    requirements.append("py2casefold")  # unicode.casefold()
+try:
+    unicode
+    requirements.append("py2casefold")
+except NameError:
+    pass
 
 # For wheels
 extra_requirements[":python_version<'3.5'"] = ["typing"]
-extra_requirements[":python_version<'3.0'"] = ["py2casefold"]
 
 setuptools.setup(
     name='ww',
@@ -79,8 +81,8 @@ setuptools.setup(
                  'Intended Audience :: Developers',
                  'Natural Language :: English',
                  'Programming Language :: Python :: 2.7',
-                 'Programming Language :: Python :: 3.3',
                  'Programming Language :: Python :: 3.4',
                  'Programming Language :: Python :: 3.5',
+                 'Programming Language :: Python :: 3.6',
                  'Operating System :: OS Independent'],
 )

@@ -8,7 +8,7 @@ except NameError:
     unicode = str
 
 from typing import (Union, Iterable, Callable, Any, TypeVar, Hashable,  # noqa
-                    Generic, Iterator)
+                    Generic, Iterator, Tuple)
 
 T = TypeVar('T')  # noqa
 T2 = TypeVar('T2')  # noqa

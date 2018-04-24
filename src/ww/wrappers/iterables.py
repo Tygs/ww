@@ -172,15 +172,15 @@ from collections import Iterator
 
 from ww.types import (Any, Union, Callable, Iterable, T, T2, Generic,   # noqa
                       Iterator)
-from ww.utils import renamed_argument
 
 import builtins
+from functools import reduce
 
 import ww  # absolute import to avoid some circular references
 
 from ww.tools.iterables import (at_index, iterslice, first_true, at_index_or,
-                                skip_duplicates, chunks, window, firsts, lasts)
-from ww.utils import ensure_tuple
+                                chunks, window, firsts, lasts)
+from ww.utils import ensure_tuple, _type_registry
 from .base import BaseIterableWrapper
 
 # todo : merge https://toolz.readthedocs.org/en/latest/api.html
@@ -190,6 +190,7 @@ from .base import BaseIterableWrapper
 # TODO: merge minibelt
 
 
+@_type_registry('g')
 class IterableWrapper(Iterator[T], BaseIterableWrapper, Generic[T]):
 
     def __init__(self, iterable, *more_iterables):
@@ -463,12 +464,12 @@ class IterableWrapper(Iterator[T], BaseIterableWrapper, Generic[T]):
             return at_index(self.iterator, index)
 
         if callable(index):
-            return first_true(self.iterator, index)  # type: ignore
+            return first_true(self.iterator, index)
 
         try:
-            start = index.start or 0  # type: ignore
-            step = index.step or 1  # type: ignore
-            stop = index.stop  # type: ignore
+            start = index.start or 0
+            step = index.step or 1
+            stop = index.stop
         except AttributeError:
             raise ValueError('Indexing works only with integers or callables')
 
@@ -490,7 +491,6 @@ class IterableWrapper(Iterator[T], BaseIterableWrapper, Generic[T]):
         """
         return self.__class__(builtins.map(callable, self.iterator))
 
-
     def filter(self, callable):
         # type: (Callable) -> IterableWrapper
         """ Apply filter() then wrap the result in g()
@@ -507,7 +507,6 @@ class IterableWrapper(Iterator[T], BaseIterableWrapper, Generic[T]):
         """
         return self.__class__(builtins.filter(callable, self.iterator))
 
-
     def reduce(self, callable, *args):
         # type: (Callable[..., T], Any) -> T
         """ Apply reduce() then wrap the result in g()
@@ -523,8 +522,7 @@ class IterableWrapper(Iterator[T], BaseIterableWrapper, Generic[T]):
                 >>> g(range(3)).reduce(lambda a, b: a + b, 1)
                 4
         """
-        return self.__class__(builtins.reduce(callable, self.iterator, *args))
-
+        return reduce(callable, self.iterator, *args)
 
     def zip(self, *others):
         # type: (*Iterable) -> IterableWrapper
@@ -550,7 +548,6 @@ class IterableWrapper(Iterator[T], BaseIterableWrapper, Generic[T]):
         return self.__class__(builtins.zip(self.iterator, *others))
 
     # TODO: reduce
-
 
     # TODO: limit add an argument to limit the number of cycles.
     def cycle(self):
@@ -701,7 +698,7 @@ class IterableWrapper(Iterator[T], BaseIterableWrapper, Generic[T]):
         # TODO: put a warning to notify infinite size will break
 
         data = list(self.iterator)
-        gap = len(data) - items:
+        gap = len(data) - items
         if gap:
             data.extend(default for _ in range(gap))
 
@@ -714,9 +711,30 @@ class IterableWrapper(Iterator[T], BaseIterableWrapper, Generic[T]):
         if not data:
             return default
 
-        return random.choice(data, items)
+        return random.choice(data)
 
     # TODO: add a consume() method
     def consume(self):
         any(self)
         return self
+
+    def enumerate(self, start=0):
+        # type: (int) -> IterableWrapper
+        """ Give you the position of each element as you iterate.
+
+            Args:
+                start: the number to start counting from. Default is 0.
+
+            Returns:
+                An IterableWrapper, yielding (position, element)
+
+            Example:
+
+                >>> from ww import g
+                >>> my_g = g('cheese')
+                >>> my_g.enumerate().list()
+                [(0, 'c'), (1, 'h'), (2, 'e'), (3, 'e'), (4, 's'), (5, 'e')]
+                >>> g('cheese').enumerate(start=1).list()
+                [(1, 'c'), (2, 'h'), (3, 'e'), (4, 'e'), (5, 's'), (6, 'e')]
+        """
+        return self.__class__(enumerate(self.iterator, start))

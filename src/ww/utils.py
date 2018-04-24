@@ -6,18 +6,26 @@
 # maybe in a fn module ?
 # TODO: doc and test
 
+from typing import Callable, Type  # noqa
 from functools import partial
 from textwrap import dedent
 
 from past.builtins import basestring
 from future.utils import bind_method
 
+import ww
+
+if False:  # Satisfy Mypy without risking circular imports
+    from ww.wrappers.list import ListWrapper  # noqa
+    from ww.wrappers.strings import StringWrapper  # noqa
+    from ww.wrappers.iterables import IterableWrapper  # noqa
+    from ww.wrappers.dicts import DictWrapper  # noqa
+
 try:
     unicode = unicode  # type: ignore
 except NameError:
     unicode = str
 
-import ww
 
 # create a @deprecated decorator
 # like this one: https://github.com/python/mypy/issues/2403
@@ -26,6 +34,7 @@ import ww
 # - issue a warning if used
 # - check if deprecated is not in the docstring, and add it at the end if
 #   not if you pass "add_to_docstring"
+
 
 def ensure_tuple(val):
     if not isinstance(val, basestring):
@@ -162,12 +171,13 @@ def auto_methods(wrapper_class, original_class, methods, force_chaining=False):
                     # type(...) -> wrapper_class
                     method(self, *args, **kwargs)
                     return self
+                return wrapper
 
             # this is about wrapping the result
             else:
                 # This wraps the original class method so it returns a wrapper
                 # class
-                @wraps(method)
+                @wraps(method)  # type: ignore
                 def wrapper(*args, **kwargs):
                     # type(...) -> wrapper_class
                     return wrapper_class(method(*args, **kwargs))
@@ -177,8 +187,8 @@ def auto_methods(wrapper_class, original_class, methods, force_chaining=False):
         # Build the wrapper with the proper method passed as a reference
         wrapper = factory(method)
 
-        # Make sure we have a docstring stating this is an automatic method, but
-        # include the original docstring in it just in case.
+        # Make sure we have a docstring stating this is an automatic method,
+        # but include the original docstring in it just in case.
 
         wrapper.__doc__ = dedent("""
         Same as {wrapper_name}.{name}(), but return a {original_class_name}
@@ -201,3 +211,95 @@ def auto_methods(wrapper_class, original_class, methods, force_chaining=False):
 
         # Attach our new method to s()
         bind_method(wrapper_class, name, wrapper)
+
+
+class _TypeRegistry(object):
+
+    l = None  # type: Type[ListWrapper]  # noqa
+    s = None  # type: Type[StringWrapper]
+    g = None  # type: Type[IterableWrapper]
+    d = None  # type: Type[DictWrapper]
+
+
+def _type_registry(name):
+
+    def tr_decorator(cls):
+        setattr(_TypeRegistry, name, cls)
+        return cls
+
+    return tr_decorator
+
+
+def _missing_msg(missing):
+    if len(missing) > 2:
+        end = "s: {}, and {}".format(", ".join(missing[:-1]), missing[-1])
+    elif len(missing) == 2:
+        end = "s: {} and {}".format(*missing)
+    elif len(missing) == 1:
+        end = ": {}".format(missing)
+    msg = "missing %s required keyword-only argument%s"
+    return msg % (len(missing), end)
+
+
+def emulate_kwonly(kws, required, withdefaults, leftovers=False):
+    """Emulate Python 3's kwonly arguments.
+
+    Parameters:
+      kws - the kwargs from which to extract the kwonly args.
+      required - an iterable holding the required kwonly args.
+      withdefaults - an iterable of pairs mapping names to defaults.
+      leftovers - allow kws to be non-empty when all the kwonly args
+            have already been popped off.
+
+    Returns:
+      The remainder of kws, followed by the values for the kwonly args
+      in the same order as they stand in required and then in
+      withdefaults.
+
+    Examples:
+      Below each "def" clause you'll find the clause that would be
+      equivalent in Python 3 to the use of emulate_kwonly().
+
+      >>> def f(a, **kwargs):
+      ... #def f(a, *, b, c=5):
+      ...     kwargs, b, c = emulate_kwonly(kwargs, ("b",), (("c", 5),))
+      ...     # continue as normal
+      ...
+      >>> def g(a, *args, **kwargs):
+      ... #def f(a, *args, b, **kwargs):
+      ...     kwargs, b = emulate_kwonly(kwargs, ("b",), (), True)
+      ...     # continue as normal
+
+    """
+
+    if hasattr(withdefaults, "items"):
+        # allows for OrderedDict to be passed
+        withdefaults = withdefaults.items()
+
+    kwonly = []
+
+    # extract the required keyword-only arguments
+    missing = []
+    for name in required:
+        if name not in kws:
+            missing.append(name)
+        else:
+            kwonly.append(kws.pop(name))
+
+    # validate required keyword-only arguments
+    if missing:
+        raise TypeError(_missing_msg(missing))
+
+    # handle the withdefaults
+    for name, value in withdefaults:
+        if name not in kws:
+            kwonly.append(value)
+        else:
+            kwonly.append(kws.pop(name))
+
+    # handle any leftovers
+    if not leftovers and kws:
+        msg = "got an unexpected keyword argument '%s'"
+        raise TypeError(msg % (kws.keys()[0]))
+
+    return [kws] + kwonly

@@ -1,6 +1,5 @@
 # coding: utf-8
 
-import math
 import pytest
 
 from ww import d
@@ -113,12 +112,6 @@ def test_from_iterable_lambda():
     assert curr_dict[0] == 0
     assert curr_dict[1] == 1
     assert curr_dict[2] == 4
-
-def test_from_key_call():
-    curr_dict = d.fromkeys(range(3), value=math.sqrt)
-    assert len(curr_dict) == 3
-    for i in range(3):
-        assert curr_dict[i] == math.sqrt(i)
 
 
 def test_merge():

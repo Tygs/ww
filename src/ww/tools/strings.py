@@ -45,16 +45,14 @@ from ww.types import (Union, unicode, str_istr, Callable,  # noqa
                       str_istr_icallable, C, I, Iterable)
 
 # TODO:
-# def rearrange(string, from_sep=None, to_sep=None, cast=None, start=None, stop=None, step=None):
+# def rearrange(string, from_sep=None, to_sep=None, cast=None, start=None,
+#               stop=None, step=None):
 #     if to_sep is None:
 #         to_sep = from_sep
 #     elements = string.split(sep)[start:stop:step]
 #     if cast:
 #         elements = elements(cast, elements)
 #     return sep.join(elements)
-
-
-
 
 REGEX_FLAGS = {
     'm': re.MULTILINE,
@@ -86,8 +84,10 @@ def parse_re_flags(flags):
     return flags
 
 
+casefold = None  # type: Callable
+
 try:
-    from py2casefold import casefold
+    from py2casefold import casefold  # type: ignore
 except ImportError:
     casefold = unicode.casefold
 
@@ -104,7 +104,7 @@ except AttributeError:  # pragma: no cover
 # TODO: remove empty strings
 def multisplit(string,  # type: unicode
                *separators,  # type: unicode
-               **kwargs  # type: Union[unicode, C[..., I[unicode]]]
+               **kwargs  # type: Union[unicode, Callable[..., I]]
                ):  # type: (...) -> I
     """ Like unicode.split, but accept several separators and regexes
 
@@ -240,7 +240,7 @@ def _split_with_max(string, separators, maxsplit, flags=0):
 
 
 def multireplace(string,  # type: unicode
-                 patterns,  # type: str_or_str_iterable
+                 patterns,  # type: str_istr
                  substitutions,  # type: str_istr_icallable
                  maxreplace=0,  # type: int
                  flags=0  # type: unicode
@@ -454,7 +454,7 @@ def make_translation_table(caracters, substitutions=None):
 
         caracters_ord = (ord(char) for char in caracters)
         if substitutions == "":
-            return dict.fromkeys(caracters_ord)  # type: ignore
+            return dict.fromkeys(caracters_ord)
 
         if len(substitutions) == 1:
             return dict(zip(caracters_ord, substitutions * len(caracters)))

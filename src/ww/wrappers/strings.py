@@ -153,7 +153,7 @@ import ww
 from ww.tools.strings import (multisplit, multireplace, casefold, map_format,
                               make_translation_table, translate_caracters,
                               autojoin)
-from ww.utils import renamed_argument, auto_methods
+from ww.utils import renamed_argument, auto_methods, _type_registry
 from ww.types import (Union, unicode, str_istr, str_istr_icallable,  # noqa
                       C, I, Iterable, Callable, Any)
 
@@ -275,7 +275,8 @@ class MetaF(type):
 # TODO: refactor methods to be only wrappers
 #       for functions from a separate module
 # TODO: inherit from BaseWrapper
-class StringWrapper(with_metaclass(MetaS, unicode)):  # type: ignore
+@_type_registry('s')
+class StringWrapper(with_metaclass(MetaS, unicode)):
     """
         Convenience wrappers around strings behaving like unicode strings, but
         make small improvements to the existing methods and add some new
@@ -979,6 +980,16 @@ class StringWrapper(with_metaclass(MetaS, unicode)):  # type: ignore
     def json_dumps(self, *args, **kwargs):
         return json.dumps(self, *args, **kwargs)
 
+    if hasattr(str, '__iter__'):
+        def __iter__(self):
+            it = super().__iter__()
+            return (self.__class__(x) for x in it)
+    else:
+        def __iter__(self):
+            # TODO: can we improve this, by avoiding a copy?
+            # BY TOUTATIS
+            return (self.__class__(x) for x in self[:])
+
     # TODO: decide if we test all those "no cover"
     if six.PY3:  # pragma: no cover
         def __repr__(self):
@@ -991,7 +1002,7 @@ auto_methods(StringWrapper, unicode, AUTO_METHODS)
 
 
 # TODO: make sure each class call self._class instead of s(), g(), etc
-class FStringWrapper(with_metaclass(MetaF)):  # type: ignore
+class FStringWrapper(with_metaclass(MetaF)):
     """
         Factory to create StringWrapper objects, but with f-string like
         capabilities.

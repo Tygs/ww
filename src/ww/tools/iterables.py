@@ -243,7 +243,8 @@ def at_index(iterable, index):
 
         return next(itertools.islice(iterable, index, index + 1))
     except (StopIteration, IndexError) as e:
-        raise_from(IndexError('Index "%d" out of range' % index), e)
+        # the return is needed to make mypy happy
+        return raise_from(IndexError('Index "%d" out of range' % index), e)
 
 
 def at_index_or(iterable, index, default=None):
@@ -266,7 +267,8 @@ def first_true(iterable, func):
         return next((x for x in iterable if func(x)))
     except StopIteration as e:
         # TODO: Find a better error message
-        raise_from(IndexError('No match for %s' % func), e)
+        # the return is needed to make mypy happy
+        return raise_from(IndexError('No match for %s' % func), e)
 
 
 def iterslice(iterable, start=0, stop=None, step=1):
@@ -304,8 +306,9 @@ def iterslice(iterable, start=0, stop=None, step=1):
 # like the original groupby
 # TODO: allow cast to be None, which set cast to lambda x: x
 @renamed_argument('key', 'keyfunc')
-def groupby(iterable, keyfunc=None, reverse=False, cast=tuple):
+def groupby(iterable, keyfunc=None, reverse=False, cast=None):
     # type: (Iterable, Callable, bool, Callable) -> Iterable
+    cast = cast or ww.g
     sorted_iterable = sorted(iterable, key=keyfunc, reverse=reverse)
     for key, group in itertools.groupby(sorted_iterable, keyfunc):
         yield key, cast(group)

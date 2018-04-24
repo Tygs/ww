@@ -1,57 +1,20 @@
 # coding: utf-8
 
+from collections import Iterable
+
+from typing import Callable  # noqa
 from pprint import pprint
 
 import builtins
 
 import ww
-
-from ww.utils import renamed_argument
+from ww.types import T, T2, Any, Tuple  # noqa
+from ww.utils import renamed_argument, _TypeRegistry
 
 
 # TODO: test that on all iterables
-class BaseIterableWrapper(object):
+class BaseIterableWrapper(Iterable):
     """ Common iterable behavior """
-
-    def list(self):
-        """ Convert self to list.
-
-            This is provided on list as well to allow calling it all all
-            ww's iterables without worring.
-        """
-        return ww.l(self)
-
-    def tuple(self):
-        """ Convert self to tuple.
-
-            This is provided on tuple as well to allow calling it all all
-            ww's iterables without worring.
-        """
-        return tuple(self)
-
-    def str(self):
-        """ Convert self to str.
-
-            This is provided on str as well to allow calling it all all
-            ww's iterables without worring.
-        """
-        return ww.s(self)
-
-    def set(self):
-        """ Convert self to set.
-
-            This is provided on set as well to allow calling it all all
-            ww's iterables without worring.
-        """
-        return builtins.set(self)
-
-    def g(self):
-        """ Convert self to g.
-
-            This is provided on g as well to allow calling it all all
-            ww's iterables without worring.
-        """
-        return ww.g(self)
 
     # TODO: offer optionnaly a better pprint
     # TODO: define all arguments explicitly
@@ -100,9 +63,8 @@ class BaseIterableWrapper(object):
         lst = builtins.sorted(self, key=keyfunc, reverse=reverse)
         return self.__class__(lst)
 
-
     def join(self, joiner, formatter=lambda s, t: t.format(s), template="{}"):
-        # type: (str, Callable, str) -> ww.s.StringWrapper
+        # type: (str, Callable, str) -> ww.s
         """ Join every item of the iterable into a string.
             This is just like the `join()` method on `str()`, but conveniently
             stored on the iterable itself.
@@ -120,16 +82,15 @@ class BaseIterableWrapper(object):
                 - 1
                 - 2
         """
-        return ww.s(joiner).join(self, formatter, template)
-
+        return _TypeRegistry.s(joiner).join(self, formatter, template)
 
     # TODO: add a sort_func argument to allow to choose the sorting strategy
     # and remove the reverse argument
     def groupby(self,
-                keyfunc=None,  # type: Callable[T]
+                keyfunc=None,  # type: Callable[[T], Any]
                 reverse=False,  # type: bool
-                cast=tuple  # type: Callable[T2]
-                ):  # type: (...) -> IterableWrapper[tuple[T, T2]]
+                cast=tuple  # type: Callable
+                ):  # type: (...) -> ww.g[Tuple[T, T2]]
         """ Group items according to one common feature.
 
             Create a generator yielding (group, grouped_items) pairs, with
@@ -170,7 +131,7 @@ class BaseIterableWrapper(object):
 
         """
         # full name to avoid shadowing
-        gen = ww.tools.iterables.groupby(self, keyfunc, reverse, cast)  
+        gen = ww.tools.iterables.groupby(self, keyfunc, reverse, cast)
         # TODO: remove that so that we get a g()
         return self.__class__(gen)
 
@@ -178,7 +139,7 @@ class BaseIterableWrapper(object):
     # https://github.com/jaybaird/python-bloomfilter
     # TODO : find a way to say "any type accepting 'in'"
     def skip_duplicates(self, key=lambda x: x, fingerprints=None):
-        # type: (Callable, Any) -> IterableWrapper
+        # type: (Callable, Any) -> ww.g
         """ Yield unique values.
 
             Returns a generator that will yield all objects from iterable,
@@ -195,6 +156,7 @@ class BaseIterableWrapper(object):
 
             :Example:
 
+                >>> from ww.tools.iterables import skip_duplicates
                 >>> list(skip_duplicates([1, 2, 3, 4, 4, 2, 1, 3 , 4]))
                 [1, 2, 3, 4]
 
@@ -230,6 +192,46 @@ class BaseIterableWrapper(object):
                 [Test('bar'), Test('other')]
 
         """
-        uniques = ww.tools.iterables.skip_duplicates(self.iterator, key, fingerprints)
+        uniques = ww.tools.iterables.skip_duplicates(self, key, fingerprints)
         # TODO: return g()
         return self.__class__(uniques)
+
+    def list(self):
+        """ Convert self to list.
+
+            This is provided on list as well to allow calling it all all
+            ww's iterables without worring.
+        """
+        return _TypeRegistry.l(self)
+
+    def tuple(self):
+        """ Convert self to tuple.
+
+            This is provided on tuple as well to allow calling it all all
+            ww's iterables without worring.
+        """
+        return tuple(self)
+
+    def str(self):
+        """ Convert self to str.
+
+            This is provided on str as well to allow calling it all all
+            ww's iterables without worring.
+        """
+        return _TypeRegistry.s(self)
+
+    def set(self):
+        """ Convert self to set.
+
+            This is provided on set as well to allow calling it all all
+            ww's iterables without worring.
+        """
+        return builtins.set(self)
+
+    def g(self):
+        """ Convert self to g.
+
+            This is provided on g as well to allow calling it all all
+            ww's iterables without worring.
+        """
+        return _TypeRegistry.g(self)

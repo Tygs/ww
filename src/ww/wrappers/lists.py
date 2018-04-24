@@ -1,8 +1,13 @@
 # coding: utf-8
+from __future__ import print_function
 
 import builtins
 
+from typing import Callable, Iterable  # noqa
+
 import ww
+
+from ww.wrappers.base import BaseIterableWrapper
 
 # TODO: ease creation of multi dimensional array
 # TODO: allow subclass to chose the string class
@@ -12,15 +17,17 @@ import ww
 # TODO: delegate work on utils
 
 
-from ww.utils import ensure_callable, auto_methods
+from ww.utils import ensure_callable, auto_methods, _type_registry
+
 
 # List of methods returning None that we want to automatically
 # return self. We plug them in a loop at the end
 # of this file
-AUTO_METHODS = ('sort', 'insert', 'clear', 'remove')
+AUTO_METHODS = ('sort', 'insert', 'remove')
 
 
-class ListWrapper(ww.wrappers.base.BaseIterableWrapper):
+@_type_registry('l')
+class ListWrapper(BaseIterableWrapper, list):
 
     @property
     def len(self):
@@ -106,20 +113,15 @@ class ListWrapper(ww.wrappers.base.BaseIterableWrapper):
             list.extend(self, value)
         return self
 
-    # TODO: proper arguments
-    def sort(self, *args, **kwargs):
-        super(list, self).sort(*args, **kwargs)
-        return self
-
-    def clear(self):
-        super(list, self).clear()
+    def sort(self, key=None, reverse=False):
+        super(list, self).sort(key=key, reverse=reverse)
         return self
 
     def copy(self):
         return self.__class__(self)
 
-    def insert(self, index, object):
-        super(list, self).clear(index, object)
+    def insert(self, index, obj):
+        super(list, self).insert(index, obj)
         return self
 
     def pop_or(self, index, default=None):
@@ -129,7 +131,7 @@ class ListWrapper(ww.wrappers.base.BaseIterableWrapper):
             return ensure_callable(default)()
 
     def remove(self, index):
-        super(list, self).remove(index, object)
+        super(list, self).remove(index)
         return self
 
     def map(self, callable):
@@ -147,7 +149,6 @@ class ListWrapper(ww.wrappers.base.BaseIterableWrapper):
 
         """
         return self.__class__(builtins.map(callable, self))
-
 
     def filter(self, callable):
         # type: (Callable) -> ListWrapper
@@ -188,6 +189,12 @@ class ListWrapper(ww.wrappers.base.BaseIterableWrapper):
         """
         return self.__class__(builtins.zip(self, *others))
 
+    if not hasattr(list, 'clear'):
+        def clear(self):
+            self[:] = ()
+            return self
+
+    __iter__ = list.__iter__
+
 
 auto_methods(ListWrapper, list, AUTO_METHODS, force_chaining=True)
-

@@ -21,9 +21,10 @@ from future.builtins import range
 import ww
 
 from ww.types import Iterable, Hashable, Any  # noqa
-from ww.utils import ensure_callable
+from ww.utils import ensure_callable, _type_registry, emulate_kwonly
 
 
+@_type_registry('d')
 class DictWrapper(dict):
 
     @classmethod
@@ -41,10 +42,11 @@ class DictWrapper(dict):
 
         Example:
 
-            >>> from ww import d
-            >>> sorted(d.from_iterable('123', default=4).items())
-            [('1', 4), ('2', 4), ('3', 4)]
-            >>> sorted(d.from_iterable(range(3), default=lambda e:e**2).items())
+            >>> from ww import d, s
+            >>> sorted(d.from_iterable(s('123'), default=4).items())
+            [(u'1', 4), (u'2', 4), (u'3', 4)]
+            >>> sorted(d.from_iterable(range(3), default=lambda e:e**2)\
+                    .items())
             [(0, 0), (1, 1), (2, 4)]
         """
         if not callable(default):
@@ -56,7 +58,7 @@ class DictWrapper(dict):
     def from_vars(cls, *names, **kwargs):
         call_frame = sys._getframe(1)
         global_vars = cls(call_frame.f_globals).subset(*names, **kwargs)
-        return global_vars +  cls(call_frame.f_locals).subset(*names, **kwargs)
+        return global_vars + cls(call_frame.f_locals).subset(*names, **kwargs)
 
     @classmethod
     def from_range(cls, start=0, stop=None, step=1, **kwargs):
@@ -136,7 +138,7 @@ class DictWrapper(dict):
         return iter(ww.g(self.items()))
 
     def isubset(self, *keys, **kwargs):
-        # type: (*Hashable) -> ww.g
+        # type: (*Hashable, Any) -> ww.g
         """Return key, self[key] as generator for key in keys.
 
         Raise KeyError if a key does not exist
@@ -150,11 +152,12 @@ class DictWrapper(dict):
             >>> list(d({1: 1, 2: 2, 3: 3}).isubset(1, 3))
             [(1, 1), (3, 3)]
         """
-        default = ensure_callable(kwargs.get('default', None))
+        kwargs, default = emulate_kwonly(kwargs, (), (('default', None), ))
+        default = ensure_callable(default)
         return ww.g((key, self.get(key, default())) for key in keys)
 
     def subset(self, *keys, **kwargs):
-        # type: (*Hashable) -> DictWrapper
+        # type: (*Hashable, Any) -> DictWrapper
         """Return d(key, self[key]) for key in keys.
 
         Raise KeyError if a key does not exist

@@ -148,9 +148,9 @@ E.G::
 
     $ tox -l
     flake8
+    py36
     py35
     py34
-    py33
     py27
     pypy2
     doc
@@ -169,10 +169,10 @@ E.G:
 All envs with a name starting with "py" requires that you have the matching
 Python interpreter installed on your system to be ran.
 
-E.G: py33 requires you to have CPython 3.3 installed on your machine, and pypy2
+E.G: py36 requires you to have CPython 3.6 installed on your machine, and pypy2
  supposes you have PyPy2 on your machine.
 
-The mypy, bandit and doc env require you to have Python3.5 installed.
+The mypy, bandit and doc env require you to have Python3.6 installed.
 
 Running all the tests in all envs can be done with:
 
