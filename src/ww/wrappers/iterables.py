@@ -159,11 +159,13 @@
 # TODO: support numpy filtering style
 # TODO: get(item, default) that does try g[item] except IndexError: default
 # https://docs.python.org/3/library/itertools.html#itertools-recipes
+# TODO: safe_g
 
 # WARNING: do not import unicode_literals, as it makes docstrings containing
 # strings fail on python2
 from __future__ import (absolute_import, division, print_function)
 
+import random
 import itertools
 
 from collections import Iterator
@@ -176,10 +178,10 @@ import builtins
 
 import ww  # absolute import to avoid some circular references
 
-from ww.tools.iterables import (at_index, iterslice, first_true,
+from ww.tools.iterables import (at_index, iterslice, first_true, at_index_or,
                                 skip_duplicates, chunks, window, firsts, lasts)
 from ww.utils import ensure_tuple
-from .base import BaseWrapper
+from .base import BaseIterableWrapper
 
 # todo : merge https://toolz.readthedocs.org/en/latest/api.html
 # toto : merge https://github.com/kachayev/fn.py
@@ -188,7 +190,7 @@ from .base import BaseWrapper
 # TODO: merge minibelt
 
 
-class IterableWrapper(Iterator[T], BaseWrapper, Generic[T]):
+class IterableWrapper(Iterator[T], BaseIterableWrapper, Generic[T]):
 
     def __init__(self, iterable, *more_iterables):
         # type: (Iterable, *Iterable) -> None
@@ -488,6 +490,42 @@ class IterableWrapper(Iterator[T], BaseWrapper, Generic[T]):
         """
         return self.__class__(builtins.map(callable, self.iterator))
 
+
+    def filter(self, callable):
+        # type: (Callable) -> IterableWrapper
+        """ Apply filter() then wrap the result in g()
+
+            Args:
+                call: the callable to pass to filter()
+
+            Example:
+
+                >>> from ww import g
+                >>> g(range(3)).filter(bool).list()
+                [1, 2]
+
+        """
+        return self.__class__(builtins.filter(callable, self.iterator))
+
+
+    def reduce(self, callable, *args):
+        # type: (Callable[..., T], Any) -> T
+        """ Apply reduce() then wrap the result in g()
+
+            Args:
+                call: the callable to pass to reduce()
+
+            Example:
+
+                >>> from ww import g
+                >>> g(range(3)).reduce(lambda a, b: a + b)
+                3
+                >>> g(range(3)).reduce(lambda a, b: a + b, 1)
+                4
+        """
+        return self.__class__(builtins.reduce(callable, self.iterator, *args))
+
+
     def zip(self, *others):
         # type: (*Iterable) -> IterableWrapper
         """ Apply zip() then wrap in g()
@@ -511,7 +549,8 @@ class IterableWrapper(Iterator[T], BaseWrapper, Generic[T]):
         """
         return self.__class__(builtins.zip(self.iterator, *others))
 
-    # TODO: add filter so we can do the filter(bool) trick
+    # TODO: reduce
+
 
     # TODO: limit add an argument to limit the number of cycles.
     def cycle(self):
@@ -540,126 +579,6 @@ class IterableWrapper(Iterator[T], BaseWrapper, Generic[T]):
                 forever. Remember you can slice g() objects.
         """
         return self.__class__(itertools.cycle(self.iterator))
-
-    @renamed_argument('key', 'keyfunc')
-    def sorted(self, keyfunc=None, reverse=False):
-        # type: (Callable, bool) -> IterableWrapper
-        """ Sort the iterable.
-
-            .. warning::
-
-                This will load the entire iterable in memory. Remember you
-                can slice g() objects before you sort them. Also remember you
-                can use callable in g() object slices, making it easy to start
-                or stop iteration on a condition.
-
-            Args:
-                keyfunc: A callable that must accept the current element to
-                         sort and return the object used to determine it's
-                         position. Default to return the object itselt.
-                reverse: If True, the iterable is sorted in the descending
-                         order instead of ascending. Default is False.
-
-            Returns:
-                The sorted iterable.
-
-            Example:
-
-                >>> from ww import g
-                >>> animals = ['dog', 'cat', 'zebra', 'monkey']
-                >>> for animal in g(animals).sorted():
-                ...     print(animal)
-                cat
-                dog
-                monkey
-                zebra
-                >>> for animal in g(animals).sorted(reverse=True):
-                ...     print(animal)
-                zebra
-                monkey
-                dog
-                cat
-                >>> for animal in g(animals).sorted(lambda animal: animal[-1]):
-                ...     print(animal)
-                zebra
-                dog
-                cat
-                monkey
-        """
-        # using builtins to avoid shadowing
-        lst = builtins.sorted(self.iterator, key=keyfunc, reverse=reverse)
-        return self.__class__(lst)
-
-    # TODO: add a sort_func argument to allow to choose the sorting strategy
-    # and remove the reverse argument
-    def groupby(self,
-                keyfunc=None,  # type: Callable[T]
-                reverse=False,  # type: bool
-                cast=tuple  # type: Callable[T2]
-                ):  # type: (...) -> IterableWrapper[tuple[T, T2]]
-        """ Group items according to one common feature.
-
-            Create a generator yielding (group, grouped_items) pairs, with
-            "group" being the return value of `keyfunc`, and grouped_items
-            being an iterable of items maching this group.
-
-            Unlike itertools.groupy, the iterable is automatically sorted for
-            you, also using the `keyfunc`, since this is what you mostly want
-            to do anyway and forgetting to sort leads to useless results.
-
-            Args:
-                keyfunc: A callable that must accept the current element to
-                         group and return the object you wish to use
-                         to determine in which group the element belongs to.
-                         This object will also be used for the sorting.
-                reverse: If True, the iterable is sorted in the descending
-                         order instead of ascending. Default is False.
-                         You probably don't need to use this, we provide it
-                         just in case there is an edge case we didn't think
-                         about.
-                cast: A callable used to choose the type of the groups of
-                      items. The default is to return items grouped as a tuple.
-                      If you want groups to be generators, pass an identity
-                      function such as lambda x: x.
-
-            Returns:
-                An IterableWrapper, yielding (group, grouped_items)
-
-            Example:
-
-                >>> from ww import g
-                >>> my_gen = g(['morbier', 'cheddar', 'cantal', 'munster'])
-                >>> my_gen.groupby(lambda i: i[0]).list()
-                [('c', ('cheddar', 'cantal')), ('m', ('morbier', 'munster'))]
-                >>> my_gen = g(['morbier', 'cheddar', 'cantal', 'munster'])
-                >>> my_gen.groupby(len, cast=list).list()
-                [(6, ['cantal']), (7, ['morbier', 'cheddar', 'munster'])]
-
-        """
-        # full name to avoid shadowing
-        gen = ww.tools.iterables.groupby(self.iterator, keyfunc, reverse, cast)
-        return self.__class__(gen)
-
-    def enumerate(self, start=0):
-        # type: (int) -> IterableWrapper
-        """ Give you the position of each element as you iterate.
-
-            Args:
-                start: the number to start counting from. Default is 0.
-
-            Returns:
-                An IterableWrapper, yielding (position, element)
-
-            Example:
-
-                >>> from ww import g
-                >>> my_g = g('cheese')
-                >>> my_g.enumerate().list()
-                [(0, 'c'), (1, 'h'), (2, 'e'), (3, 'e'), (4, 's'), (5, 'e')]
-                >>> g('cheese').enumerate(start=1).list()
-                [(1, 'c'), (2, 'h'), (3, 'e'), (4, 'e'), (5, 's'), (6, 'e')]
-        """
-        return self.__class__(enumerate(self.iterator, start))
 
     # TODO: provide the static method range(), and give it the habiility
     # to do itertools.count.
@@ -704,27 +623,6 @@ class IterableWrapper(Iterator[T], BaseWrapper, Generic[T]):
         self.iterator, new = itertools.tee(self.iterator)
         return self.__class__(new)
 
-    def join(self, joiner, formatter=lambda s, t: t.format(s), template="{}"):
-        # type: (str, Callable, str) -> ww.s.StringWrapper
-        """ Join every item of the iterable into a string.
-            This is just like the `join()` method on `str()`, but conveniently
-            stored on the iterable itself.
-
-            Example:
-
-                >>> from ww import g
-                >>> g(range(3)).join('|')
-                u'0|1|2'
-                >>> to_string = lambda s, t: str(s) * s
-                >>> print(g(range(1, 4)).join(',', formatter=to_string))
-                1,22,333
-                >>> print(g(range(3)).join('\\n', template='- {}'))
-                - 0
-                - 1
-                - 2
-        """
-        return ww.s(joiner).join(self, formatter, template)
-
     def __repr__(self):
         # type: () -> str
         return "<IterableWrapper generator>"
@@ -768,6 +666,9 @@ class IterableWrapper(Iterator[T], BaseWrapper, Generic[T]):
         """
         return self.__class__(window(self.iterator, size, cast))
 
+    def get(self, default=None):
+        return at_index_or(self.iterator, default)
+
     def firsts(self, items=1, default=None):
         # type: (int, Any) -> IterableWrapper
         """ Lazily return the first x items from this iterable or default.
@@ -795,64 +696,27 @@ class IterableWrapper(Iterator[T], BaseWrapper, Generic[T]):
         """
         return self.__class__(lasts(self.iterator, items, default))
 
-    # allow using a bloom filter as an alternative to set
-    # https://github.com/jaybaird/python-bloomfilter
-    # TODO : find a way to say "any type accepting 'in'"
-    def skip_duplicates(self, key=lambda x: x, fingerprints=None):
-        # type: (Callable, Any) -> IterableWrapper
-        """ Yield unique values.
+    # TODO: chance "default=None" to "No value" everywhere ?
+    def sample(self, items=1, default=None, wrapper=ww.l):
+        # TODO: put a warning to notify infinite size will break
 
-            Returns a generator that will yield all objects from iterable,
-            skipping duplicates.
+        data = list(self.iterator)
+        gap = len(data) - items:
+        if gap:
+            data.extend(default for _ in range(gap))
 
-            Duplicates are identified using the `key` function to calculate a
-            unique fingerprint. This does not use natural equality, but the
-            result use a set() to remove duplicates, so defining __eq__
-            on your objects would have no effect.
+        return wrapper(random.sample(data, items))
 
-            By default the fingerprint is the object itself, which ensure the
-            functions works as-is with an iterable of primitives such as int,
-            str or tuple.
+    def random(self, default=None):
+        # TODO: put a warning to notify infinite size will break
 
-            :Example:
+        data = list(self.iterator)
+        if not data:
+            return default
 
-                >>> list(skip_duplicates([1, 2, 3, 4, 4, 2, 1, 3 , 4]))
-                [1, 2, 3, 4]
-
-            The return value of `key` MUST be hashable, which means for
-            non hashable objects such as dict, set or list, you need to specify
-            a function that returns a hashable fingerprint.
-
-            :Example:
-
-                >>> list(skip_duplicates(([], [], (), [1, 2], (1, 2)),
-                ...                      lambda x: tuple(x)))
-                [[], [1, 2]]
-                >>> list(skip_duplicates(([], [], (), [1, 2], (1, 2)),
-                ...                      lambda x: (type(x), tuple(x))))
-                [[], (), [1, 2], (1, 2)]
-
-            For more complex types, such as custom classes, the default
-            behavior is to remove nothing. You MUST provide a `key` function is
-            you wish to filter those.
-
-            :Example:
-
-                >>> class Test(object):
-                ...    def __init__(self, foo='bar'):
-                ...        self.foo = foo
-                ...    def __repr__(self):
-                ...        return "Test('%s')" % self.foo
-                ...
-                >>> list(skip_duplicates([Test(), Test(), Test('other')]))
-                [Test('bar'), Test('bar'), Test('other')]
-                >>> list(skip_duplicates([Test(), Test(), Test('other')],\
-                                         lambda x: x.foo))
-                [Test('bar'), Test('other')]
-
-        """
-
-        uniques = skip_duplicates(self.iterator, key, fingerprints)
-        return self.__class__(uniques)
+        return random.choice(data, items)
 
     # TODO: add a consume() method
+    def consume(self):
+        any(self)
+        return self

@@ -156,29 +156,6 @@ def test_add():
         1 + string
 
 
-def test_tobool():
-
-    conversions = {
-        '1': True,
-        '0': False,
-        'true': True,
-        'false': False,
-        'on': True,
-        'off': False,
-        'yes': True,
-        'no': False,
-        '': False
-    }
-
-    for key, val in conversions.items():
-        assert s(key).to_bool() == val
-
-    assert s('foo').to_bool(default=True) is True
-
-    with pytest.raises(ValueError):
-        s('foo').to_bool()
-
-
 def test_unbreak():
 
     assert s('''

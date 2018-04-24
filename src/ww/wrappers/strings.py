@@ -122,8 +122,8 @@ from __future__ import (absolute_import, division, print_function)
 # TODO .groups would be a g() object
 # TODO: override slicing to allow callables
 # TODO: provide "strip_comments" ?
-# TODO: provide from_json() / to_json()
 # TODO: provide the same for html / xml
+# TODO: test automethods
 
 # TODO : add encoding detection, fuzzy_decode() to make the best of shitty
 # decoding, unidecode, slug, etc,
@@ -133,16 +133,14 @@ from __future__ import (absolute_import, division, print_function)
 
 # TODO: match.__repr__ should show match, groups, groupsdict in summary
 
+import json
 import inspect
 import textwrap
-
-from ww.utils import wraps
 
 import six
 import chardet
 
 from six import with_metaclass
-from future.utils import bind_method
 from future.utils import raise_from
 
 try:
@@ -155,7 +153,7 @@ import ww
 from ww.tools.strings import (multisplit, multireplace, casefold, map_format,
                               make_translation_table, translate_caracters,
                               autojoin)
-from ww.utils import renamed_argument
+from ww.utils import renamed_argument, auto_methods
 from ww.types import (Union, unicode, str_istr, str_istr_icallable,  # noqa
                       C, I, Iterable, Callable, Any)
 
@@ -699,6 +697,10 @@ class StringWrapper(with_metaclass(MetaS, unicode)):  # type: ignore
         """
         return self.__class__(autojoin(iterable, self, formatter, template))
 
+    # TODO: detect_encoding()
+    # TODO: auto_from_bytes(byte_string, try_encodings=('utf8', 'latin-1'),
+    #                       stragegy="replace|ignore", detect_first=True)
+
     @classmethod
     def from_bytes(cls, byte_string, encoding=None, errors='strict'):
         # type: (bytes, str, str) -> ww.s.StringWrapper
@@ -760,6 +762,8 @@ class StringWrapper(with_metaclass(MetaS, unicode)):  # type: ignore
             f-strings, and look for the variables from the current local
             context to fill in the markers.
 
+            Contrary to f-strings, globals are not accessible,
+
             Args:
 
                 *args: elements used to replace {} markers.
@@ -777,66 +781,10 @@ class StringWrapper(with_metaclass(MetaS, unicode)):  # type: ignore
                 >>> print(s('Dis ize me, {name} !').format())
                 Dis ize me, Mario !
         """
-        # TODO: check that globals are accessible
         if not args and not kwargs:
             pframe = inspect.currentframe().f_back
             return self.__class__(unicode.format(self, **pframe.f_locals))
         return self.__class__(unicode.format(self, *args, **kwargs))
-
-    # TODO: i18n
-    # todo: rename to 'as_bool'
-    def to_bool(self, default=None):
-        # type: (Any) -> bool
-        """ Take a string with a binary meaning, and turn it into a boolean.
-
-            The following strings will be converted:
-
-                - '1' => True,
-                - '0' => False,
-                - 'true' => True,
-                - 'false' => False,
-                - 'on' => True,
-                - 'off' => False,
-                - 'yes' => True,
-                - 'no' => False,
-                - '' => False
-
-            Args:
-
-                default: the value to return if the string can't be
-                         converted.
-
-            Returns:
-                A boolean matching the meaning of the string.
-
-            Example:
-
-                >>> from ww import s
-                >>> s('true').to_bool()
-                True
-                >>> s('Off').to_bool()
-                False
-        """
-        try:
-            return {
-                '1': True,
-                '0': False,
-                'true': True,
-                'false': False,
-                'on': True,
-                'off': False,
-                'yes': True,
-                'no': False,
-                '': False
-            }[self.lower()]  # TODO: normalize + strip()
-        except KeyError:
-            if default is not None:
-                return default
-            raise ValueError(ww.f >> """
-                             '{self!r}' cannot be converted to a boolean. Clean
-                             your input or set the 'default' parameter to True
-                             or False.
-                             """)
 
     def casefold(self):
         # type: (...) -> StringWrapper
@@ -1024,6 +972,13 @@ class StringWrapper(with_metaclass(MetaS, unicode)):  # type: ignore
         """
         return self.__class__(map_format(self, mapping))
 
+    @classmethod
+    def json_loads(cls, data, *args, **kwargs):
+        return cls(json.loads(data, *args, **kwargs))
+
+    def json_dumps(self, *args, **kwargs):
+        return json.dumps(self, *args, **kwargs)
+
     # TODO: decide if we test all those "no cover"
     if six.PY3:  # pragma: no cover
         def __repr__(self):
@@ -1031,46 +986,8 @@ class StringWrapper(with_metaclass(MetaS, unicode)):  # type: ignore
             return 'u{}'.format(super(StringWrapper, self).__repr__())
 
 
-# Add methods with the result being converted automatically to StringWrapper
-for name in AUTO_METHODS:
-
-    # Get the original unicode method, such as unicode.title, unicode.upper...
-    method = getattr(unicode, name)
-
-    # Use a factory to have a paramter with the same name as the local
-    # variable and avoid a closure which would always reference the same
-    # method
-    def factory(method):
-
-        # This wraps the original unicode method so it returns a StringWrapper
-        @wraps(method)
-        def wrapper(*args, **kwargs):
-            # type(...) -> StringWrapper
-            return StringWrapper(method(*args, **kwargs))
-
-        return wrapper
-
-    # Build the wrapper with the proper method passed as a reference
-    wrapper = factory(method)
-
-    # Make sure we have a docstring stating this is an automatic method, but
-    # include the original docstring in it just in case.
-    wrapper.__doc__ = str(StringWrapper(  # noqa
-    """ Same as unicode.{name}(), but return a StringWrapper
-
-    This method has been converted automatically, but the behavior is exactly
-    the same than the original method, except we wrap the result in
-    a StringWrapper.
-
-    Here is the original docstring:
-
-    '''
-    {method.__doc__}
-    '''
-    """).format().dedent())
-
-    # Attach our new method to s()
-    bind_method(StringWrapper, name, wrapper)
+# Add methods with the result being converted automatically to StringWrapper*
+auto_methods(StringWrapper, unicode, AUTO_METHODS)
 
 
 # TODO: make sure each class call self._class instead of s(), g(), etc
@@ -1101,7 +1018,8 @@ class FStringWrapper(with_metaclass(MetaF)):  # type: ignore
            Remember that, while f-strings are interpreted at parsing time,
            our implementation is executed at run-time, making it vulnerable
            to code injection. This makes it a dangerous feature to put
-           in production.
+           in production. For this reason, globals are NOT accessible inside.
+
     """
     def __new__(cls, string):
         # type: (str) -> StringWrapper

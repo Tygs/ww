@@ -4,10 +4,13 @@
 # TODO: add reify, based on removable property
 # TODO: add a function always_return(x) that returns always x, identity
 # maybe in a fn module ?
+# TODO: doc and test
 
 from functools import partial
+from textwrap import dedent
 
 from past.builtins import basestring
+from future.utils import bind_method
 
 try:
     unicode = unicode  # type: ignore
@@ -24,7 +27,6 @@ import ww
 # - check if deprecated is not in the docstring, and add it at the end if
 #   not if you pass "add_to_docstring"
 
-
 def ensure_tuple(val):
     if not isinstance(val, basestring):
         try:
@@ -32,6 +34,12 @@ def ensure_tuple(val):
         except TypeError:
             return (val,)
     return (val,)
+
+
+def ensure_callable(value):
+    if callable(value):
+        return value
+    return lambda: value
 
 
 # TODO: make that a decorator
@@ -129,3 +137,67 @@ def wraps(wrapped,
     """
     return partial(update_wrapper, wrapped=wrapped,
                    assigned=assigned, updated=updated)
+
+
+def auto_methods(wrapper_class, original_class, methods, force_chaining=False):
+
+    # Add methods with the result being converted automatically to the
+    # wrapper class
+    for name in methods:
+
+        # Get the original class method reference
+        method = getattr(original_class, name)
+
+        # Use a factory to have a parameter with the same name as the local
+        # variable and avoid a closure which would always reference the same
+        # method
+        def factory(method):
+
+            # this is about turning the method into a chaining one
+            if force_chaining:
+
+                # This wraps the original class method so it returns self
+                @wraps(method)
+                def wrapper(self, *args, **kwargs):
+                    # type(...) -> wrapper_class
+                    method(self, *args, **kwargs)
+                    return self
+
+            # this is about wrapping the result
+            else:
+                # This wraps the original class method so it returns a wrapper
+                # class
+                @wraps(method)
+                def wrapper(*args, **kwargs):
+                    # type(...) -> wrapper_class
+                    return wrapper_class(method(*args, **kwargs))
+
+            return wrapper
+
+        # Build the wrapper with the proper method passed as a reference
+        wrapper = factory(method)
+
+        # Make sure we have a docstring stating this is an automatic method, but
+        # include the original docstring in it just in case.
+
+        wrapper.__doc__ = dedent("""
+        Same as {wrapper_name}.{name}(), but return a {original_class_name}
+
+        This method has been converted automatically, but the behavior is
+        exactly the same than the original method, except we wrap the result in
+        a {original_class_name}.
+
+        Here is the original docstring:
+
+        '''
+        {method.__doc__}
+        '''
+        """).strip().format(
+            original_class_name=original_class.__class__.__name__,
+            wrapper_name=wrapper_class.__class__.__name__,
+            method=method,
+            name=name
+        )
+
+        # Attach our new method to s()
+        bind_method(wrapper_class, name, wrapper)

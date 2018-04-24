@@ -39,9 +39,12 @@ def test_isubset():
 
 def test_isubset_unexisting_key():
     curr_dict = d({1: 'abcd', 2: "azr"})
-    g = curr_dict.isubset('a')
-    with pytest.raises(KeyError):
-        list(next(g))
+    g = curr_dict.isubset('a').list()
+    assert g == [("a", None)]
+    g = curr_dict.isubset('a', default=True).list()
+    assert g == [("a", True)]
+    g = curr_dict.isubset('a', default=int).list()
+    assert g == [("a", 0)]
 
 
 def test_subset():
@@ -55,8 +58,12 @@ def test_subset():
 
 def test_subset_unexisting_key():
     curr_dict = d({1: 'abcd', 2: "azr", 3: "ooo"})
-    with pytest.raises(KeyError):
-        curr_dict.subset(1, 4)
+    g = curr_dict.subset('a')
+    assert g == {"a": None}
+    g = curr_dict.subset('a', default=True)
+    assert g == {"a": True}
+    g = curr_dict.subset('a', default=int)
+    assert g == {"a": 0}
 
 
 def test_swap():
@@ -92,21 +99,20 @@ def test_iterator():
     assert (3, 'ooo') in list_iterator
 
 
-def test_from_key_val():
-    curr_dict = d.fromkeys('123', value=4)
+def test_from_iterable_val():
+    curr_dict = d.from_iterable('123', default=4)
     assert len(curr_dict) == 3
     assert curr_dict['1'] == 4
     assert curr_dict['2'] == 4
     assert curr_dict['3'] == 4
 
 
-def test_from_key_lambda():
-    curr_dict = d.fromkeys(range(3), value=lambda v: v ** 2)
+def test_from_iterable_lambda():
+    curr_dict = d.from_iterable(range(3), default=lambda v: v ** 2)
     assert len(curr_dict) == 3
     assert curr_dict[0] == 0
     assert curr_dict[1] == 1
     assert curr_dict[2] == 4
-
 
 def test_from_key_call():
     curr_dict = d.fromkeys(range(3), value=math.sqrt)

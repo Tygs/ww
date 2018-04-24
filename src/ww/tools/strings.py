@@ -44,6 +44,17 @@ from ww.utils import require_positive_number, ensure_tuple
 from ww.types import (Union, unicode, str_istr, Callable,  # noqa
                       str_istr_icallable, C, I, Iterable)
 
+# TODO:
+# def rearrange(string, from_sep=None, to_sep=None, cast=None, start=None, stop=None, step=None):
+#     if to_sep is None:
+#         to_sep = from_sep
+#     elements = string.split(sep)[start:stop:step]
+#     if cast:
+#         elements = elements(cast, elements)
+#     return sep.join(elements)
+
+
+
 
 REGEX_FLAGS = {
     'm': re.MULTILINE,

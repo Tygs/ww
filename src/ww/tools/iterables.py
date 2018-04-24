@@ -29,7 +29,7 @@ from future.utils import raise_from
 import ww
 
 from ww.types import Union, Callable, Iterable, Any, T  # noqa
-from ww.utils import renamed_argument
+from ww.utils import renamed_argument, ensure_callable
 
 from collections import deque
 
@@ -244,6 +244,13 @@ def at_index(iterable, index):
         return next(itertools.islice(iterable, index, index + 1))
     except (StopIteration, IndexError) as e:
         raise_from(IndexError('Index "%d" out of range' % index), e)
+
+
+def at_index_or(iterable, index, default=None):
+    try:
+        return at_index(iterable, index)
+    except IndexError:
+        return ensure_callable(default)()
 
 
 # TODO: accept a default value if not value is found

@@ -1,0 +1,9 @@
+
+- includes orderedset and orderedict
+- include sortedset and sorteddict
+- include ring buffer (with a deque)
+- enum (https://pypi.python.org/pypi/enum34)
+https://github.com/erikrose/more-itertools/issues/139
+
+gefilezile
+matmul
