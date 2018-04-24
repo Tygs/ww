@@ -581,6 +581,10 @@ class StringWrapper(with_metaclass(MetaS, unicode)):
 
         try:
             str_res = unicode.__add__(str_self, other)
+            # Pypy3 str.__add__ returns NotImplemented instead of raising
+            # TypeError
+            if str_res == NotImplemented:
+                raise TypeError()
         except TypeError as e:
             raise_from(e.__class__(ww.s >> """
                 You can't concatenate a string ({!r}) with an object of
