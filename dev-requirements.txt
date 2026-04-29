@@ -1,4 +1,4 @@
 coverage
-pytest==3
+pytest==9.0.3
 pytest-cov
 tox
